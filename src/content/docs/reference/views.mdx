@@ -1,0 +1,105 @@
+---
+title: Views
+description: How .dealview sidecar files describe diagrams and layout without touching the model.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+DEAL has three file types. Definitions live in `.deal`, compositions in `.dealx`, and **views** in `.dealview`. A view is a *sidecar*: it describes how part of the model is drawn — which elements appear, how they are laid out, and how they are styled — without changing the model itself.
+
+<Aside type="note" title="Status">
+  The view grammar (`dealview.ebnf`, Layer 5 of the spec) is defined and the showcase ships ten `.dealview` files, but the current CLI does not parse or render views yet — view tooling arrives with the editor. Views are pure presentation, so this never blocks you: deleting every `.dealview` file leaves `deal build` output unchanged.
+</Aside>
+
+## A view is a sidecar, not a source
+
+Two invariants make views safe to add, edit, and delete freely:
+
+- **One-way dependency (GV-9).** Views read the model; `.deal` and `.dealx` files never reference a view. Removing a view cannot affect compilation or generated SysML v2 / ReqIF output.
+- **No fabrication (GV-13).** A `.dealview` file has no element-declaring syntax. It can only *reference* elements that already exist in the model — a view can never invent a part, port, or requirement.
+
+## Co-location
+
+A view is bound to a composition by **file name**, not by registration or import. Place `<name>.dealview` beside `<name>.dealx` and it automatically becomes that file's structure view:
+
+```
+model/
+  vehicle.dealx        ← composition
+  vehicle.dealview     ← its view (co-located)
+```
+
+Cross-cutting views — ones whose membership is drawn from several files — live wherever you like (the showcase keeps them under `model/views/`).
+
+## The `view` block
+
+Every `.dealview` file opens with a `view` block declaring the viewpoint and layout intent:
+
+```dealview
+view {
+    title: "EV Platform — System Structure";
+    viewpoint: structure;
+    grid: 20;
+    direction: left-to-right;
+}
+```
+
+`viewpoint: structure` draws the composition (instances and connections); `viewpoint: definition` draws a block-definition diagram of `part def`s and their relationships, independent of any composition. `layout: tree` selects an auto-layout strategy.
+
+## Membership
+
+`include` and `exclude` blocks select which model elements the view contains. Membership is *query-based*, so the diagram stays current as the model grows — there is no element list to maintain by hand:
+
+```dealview
+include {
+    model.EVPlatform.**;            // the whole subtree
+    kind(part_def) within vehicle;  // every part def under vehicle.*
+}
+```
+
+Glob (`**`), `kind(...)`, and `within` keep selections live: a new `part def` added anywhere under `vehicle` joins the diagram automatically. Connections are included automatically when both of their endpoints are visible.
+
+## Geometry — deltas only
+
+Layout is handled by auto-layout. A view stores only the **deltas** from that auto-layout (GV-3): elements you have not positioned are placed for you. Positions are keyed by `deal-id` and are relative to the parent container, so moving a subsystem does not rewrite its children:
+
+```dealview
+[deal-id="model.EVPlatform.EnergyStorage"] {
+    x: 60; y: 80; w: 320; h: 280;
+}
+```
+
+## Styling and the cascade
+
+Styling resolves through a three-step cascade, lowest to highest priority:
+
+```
+auto-layout  <  global.dealview (workspace theme)  <  <view>.dealview (instance)
+```
+
+The workspace theme — `model/global.dealview`, registered under `[views]` in `deal.toml` — holds **house style only**, no positions: semantic color tokens and type-level defaults for each element kind.
+
+```dealview
+tokens {
+    surface:  base;                               // alias a built-in theme slot
+    power:    light(#B45309) dark(#F59E0B);       // workspace color, per mode
+    thermal:  light(#0E7490) dark(#22D3EE);
+}
+
+system {
+    fill: surface;
+    stroke: accent;
+    stroke-width: 2;
+    corner-radius: 10;
+}
+```
+
+Rules reference workspace tokens, which resolve to either a built-in slot (`base`, `accent`, `muted` — drawn from the active editor theme) or a literal with `light()` / `dark()` variants. Per-view files then override these defaults with instance geometry.
+
+## Mapping to SysML v2
+
+Views correspond to SysML v2 view and viewpoint definitions — a membership query such as `include { model.EVPlatform.**; }` maps to exposing `model::EVPlatform::**` in the generated view.
+
+## Related
+
+- [Compositions](/reference/compositions/) — the `.dealx` files views are co-located with.
+- [deal.toml](/reference/deal-toml/) — the `[views]` section that registers the workspace theme.

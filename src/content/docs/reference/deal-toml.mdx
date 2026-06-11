@@ -1,0 +1,152 @@
+---
+title: deal.toml
+description: DEAL project manifest — project, workspace, dependencies, and build targets.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`deal.toml` is the project manifest. Every DEAL project has one at the root. It declares project metadata, workspace layout, dependencies, simulation registry, and build targets.
+
+## [project]
+
+```toml
+[project]
+name = "ev-platform"
+version = "0.1.0"
+schema = "deal/0.1"
+marking = "Unclassified"
+description = "Electric vehicle platform model — DEAL language showcase"
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Project name (no spaces; used as directory name by `deal init`) |
+| `version` | No | SemVer project version |
+| `schema` | Yes | DEAL schema version (`"deal/0.1"`) |
+| `marking` | No | Classification marking (e.g., `"Unclassified"`) |
+| `description` | No | Human-readable project description |
+
+## [workspace]
+
+```toml
+[workspace]
+packages = [
+    "packages/*"
+]
+```
+
+`packages` is a list of glob patterns pointing to DEAL packages within the project. Packages are `.deal` source trees under `packages/` by convention (PS-8).
+
+## [workspace.aliases]
+
+Workspace aliases map short names to package paths. Used in `import` statements:
+
+```toml
+[workspace.aliases]
+vehicle    = "packages/vehicle"
+interfaces = "packages/interfaces"
+reqs       = "packages/requirements"
+use_cases  = "packages/use-cases"
+```
+
+After declaring this, you can write:
+
+```deal
+package vehicle.motor;
+
+import interfaces.{HVDCPort, CANBus};
+```
+
+## [dependencies]
+
+```toml
+[dependencies]
+deal-std = { git = "https://github.com/deal-lang/deal-stdlib", tag = "v0.4.0" }
+```
+
+`deal-std` is the standard library. The git dependency form uses an exact tag (D-67). No semver ranges — `deal install` pins the resolved commit SHA in `deal.lock`.
+
+| Dependency form | Syntax | Use |
+|----------------|--------|-----|
+| Git (pinned tag) | `{ git = "url", tag = "v1.0.0" }` | Published library |
+| Git (pinned rev) | `{ git = "url", rev = "abc1234" }` | Specific commit |
+| Local path | `{ path = "../my-lib" }` | Sibling repo, no copy |
+
+After `deal install`, git deps are vendored into `.deal/deps/<name>/` at the locked SHA.
+
+## [simulations]
+
+```toml
+[simulations]
+registry = "simulations/deal.sims.toml"
+cache_dir = ".deal/simulations"
+```
+
+Points to the simulation registry file and the local cache directory for simulation I/O.
+
+## [build.targets]
+
+```toml
+[build.targets]
+sysml-v2 = { format = "json",  output = "build/sysml-v2/" }
+reqif    = { format = "xml",   output = "build/reqif/" }
+docs     = { format = "html",  output = "build/docs/", template = "program-review" }
+```
+
+Each target is invoked with `deal build --target <name>`. The `format` field selects the codegen backend. The `output` field sets the output directory.
+
+## deal.lock
+
+`deal install` writes `deal.lock` alongside `deal.toml`. It records the resolved commit SHA for every git dependency:
+
+```toml
+[packages.deal-std]
+source = "git+https://github.com/deal-lang/deal-stdlib?tag=v0.4.0"
+sha = "abc1234..."
+```
+
+Commit `deal.lock` to your repository. Reproducible builds require a pinned lockfile.
+
+## Full Example
+
+From the EV platform showcase (`spec/examples/showcase/deal.toml`):
+
+```toml
+[project]
+name = "ev-platform"
+version = "0.1.0"
+schema = "deal/0.1"
+marking = "Unclassified"
+description = "Electric vehicle platform model — DEAL language showcase"
+
+[workspace]
+packages = [
+    "packages/*"
+]
+
+[workspace.aliases]
+vehicle    = "packages/vehicle"
+interfaces = "packages/interfaces"
+reqs       = "packages/requirements"
+use_cases  = "packages/use-cases"
+
+[dependencies]
+deal-std = "0.1"
+
+[simulations]
+registry = "simulations/deal.sims.toml"
+cache_dir = ".deal/simulations"
+
+[build.targets]
+sysml-v2 = { format = "json", output = "build/sysml-v2/" }
+reqif    = { format = "xml",  output = "build/reqif/" }
+docs     = { format = "html", output = "build/docs/", template = "program-review" }
+```
+
+<Aside type="note">
+The showcase `deal.toml` uses the short form `deal-std = "0.1"` for brevity. New projects scaffolded by `deal init` use the full git dependency form: `deal-std = { git = "https://github.com/deal-lang/deal-stdlib", tag = "v0.4.0" }`.
+</Aside>
+
+<Aside type="tip">
+Run `deal init <name>` to scaffold a new project with a `deal.toml` pre-wired with the `deal-std` dependency and the PS-8 directory layout.
+</Aside>

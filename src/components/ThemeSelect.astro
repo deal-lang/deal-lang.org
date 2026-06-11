@@ -1,0 +1,87 @@
+---
+/* Custom theme switcher — a single icon button that cycles
+   Auto (laptop) -> Light (sun) -> Dark (moon) -> Auto.
+   Replaces Starlight's default <select> dropdown. */
+import { Icon } from '@astrojs/starlight/components';
+const label = Astro.locals.t('themeSelect.accessibleLabel');
+---
+
+<starlight-theme-select>
+  <button type="button" class="theme-toggle" data-theme="auto" aria-label={label} title={label}>
+    <span class="ico ico-auto"><Icon name="laptop" /></span>
+    <span class="ico ico-light"><Icon name="sun" /></span>
+    <span class="ico ico-dark"><Icon name="moon" /></span>
+  </button>
+</starlight-theme-select>
+
+<style>
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--sl-color-text);
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 0;
+  }
+  .theme-toggle:hover {
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-text-accent);
+  }
+  .theme-toggle .ico { display: none; }
+  .theme-toggle[data-theme='auto'] .ico-auto { display: inline-flex; }
+  .theme-toggle[data-theme='light'] .ico-light { display: inline-flex; }
+  .theme-toggle[data-theme='dark'] .ico-dark { display: inline-flex; }
+</style>
+
+<script>
+  type Theme = 'auto' | 'dark' | 'light';
+  const storageKey = 'starlight-theme';
+  const order: Theme[] = ['auto', 'light', 'dark'];
+
+  const parse = (t: unknown): Theme =>
+    t === 'auto' || t === 'dark' || t === 'light' ? t : 'auto';
+  const load = (): Theme =>
+    parse(typeof localStorage !== 'undefined' && localStorage.getItem(storageKey));
+  const store = (t: Theme): void => {
+    if (typeof localStorage !== 'undefined')
+      localStorage.setItem(storageKey, t === 'light' || t === 'dark' ? t : '');
+  };
+  const system = (): Theme =>
+    matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+
+  function apply(t: Theme): void {
+    document.documentElement.dataset.theme = t === 'auto' ? system() : t;
+    window.StarlightThemeProvider?.updatePickers(t);
+  }
+
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+    if (load() === 'auto') apply('auto');
+  });
+
+  class StarlightThemeSelect extends HTMLElement {
+    constructor() {
+      super();
+      const btn = this.querySelector('button');
+      let cur = load();
+      const render = () => {
+        if (btn) btn.dataset.theme = cur;
+      };
+      apply(cur);
+      render();
+      btn?.addEventListener('click', () => {
+        cur = order[(order.indexOf(cur) + 1) % order.length]!;
+        store(cur);
+        apply(cur);
+        render();
+      });
+    }
+  }
+  customElements.define('starlight-theme-select', StarlightThemeSelect);
+</script>

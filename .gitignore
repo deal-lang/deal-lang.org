@@ -1,0 +1,17 @@
+# Astro build output
+dist/
+.astro/
+
+# Node modules
+node_modules/
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local

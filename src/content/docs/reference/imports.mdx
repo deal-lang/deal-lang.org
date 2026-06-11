@@ -1,0 +1,121 @@
+---
+title: Imports
+description: DEAL import system — the five import forms and deal.toml dependency resolution.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+DEAL has five import forms. All resolve through `deal.toml [dependencies]` and are vendored into `.deal/deps/` by `deal install`.
+
+## The Five Import Forms
+
+### 1. External import (standard library / published dependency)
+
+```deal
+import deal.std.units.{kg, km, hr, kWh, min, degC, s};
+```
+
+Resolves the `deal.std.units` package from the `deal-std` dependency declared in `deal.toml`. The braces list the specific symbols to import.
+
+### 2. Workspace alias import
+
+```deal
+package vehicle.motor;
+
+import interfaces.{HVDCPort, RegenPowerPort, CANBus, ShaftPort};
+```
+
+`interfaces` is a workspace alias declared in `deal.toml [workspace.aliases]`. The braces list the specific symbols to import. To import every exported symbol from a package, use a star glob: `import reqs.system.*;`
+
+### 3. Relative same-package import
+
+```deal
+import .dimensions.{Mass, Length, Time, Current, Temperature};
+```
+
+The leading `.` resolves relative to the current package. This is used by `deal-stdlib` internally to share dimension definitions across units.
+
+### 4. Relative parent-package import
+
+The `..` prefix navigates to the parent package, then into a sibling:
+
+```
+import ..sib.{SomeDef};
+```
+
+Use sparingly — workspace aliases are clearer for cross-package references.
+
+### 5. Barrel glob import
+
+```deal
+import interfaces.*;
+import vehicle.*;
+```
+
+Imports all exports from the package root (`index.deal` barrel file). Use when you need most symbols from a package.
+
+### Aliased import
+
+Any form can be aliased:
+
+```deal
+import interfaces as intf;
+```
+
+After this, use `intf.HVDCPort` to qualify names from the package.
+
+## Selective Exports (index.deal)
+
+Packages control their public surface via `index.deal` barrel exports:
+
+```deal
+export electrical.{HVDCPort, CANBus};
+export mechanical.{BoltPattern};
+```
+
+Symbols not listed in `index.deal` are package-private.
+
+## deal.toml Dependency Declaration
+
+Dependencies are declared in `deal.toml [dependencies]`. The `deal-std` stdlib is an explicit git dependency:
+
+```toml
+[dependencies]
+deal-std = { git = "https://github.com/deal-lang/deal-stdlib", tag = "v0.4.0" }
+```
+
+After `deal install`, the dependency is vendored into `.deal/deps/deal-std/` at the pinned commit SHA.
+
+Local-path dependencies reference a sibling directory without copying:
+
+```toml
+[dependencies]
+my-lib = { path = "../my-lib" }
+```
+
+## deal.lock
+
+`deal install` generates a SHA-pinned lockfile. For git dependencies:
+
+```toml
+[packages.deal-std]
+source = "git+https://github.com/deal-lang/deal-stdlib?tag=v0.4.0"
+sha = "abc1234..."
+```
+
+Exact refs only — no semver ranges. Commit `deal.lock` to reproduce the build.
+
+## Resolution Flow
+
+1. `deal install` reads `deal.toml [dependencies]`
+2. Git deps are cloned into `.deal/deps/<name>/` at the locked ref
+3. `deal check` and `deal build` add vendored sources to the analysis set
+4. Import `deal.std.units.{kg}` resolves: `deal-std` → `.deal/deps/deal-std/packages/units/si.deal` → `attribute def kg`
+
+<Aside type="note">
+`deal install` must be run before `deal check` can resolve external imports. The E2402 diagnostic fires when a declared dependency has not been installed: `error[E2402]: dependency 'deal-std' not resolved — run 'deal install'`.
+</Aside>
+
+<Aside type="tip">
+The showcase `deal.toml` at `spec/examples/showcase/deal.toml` demonstrates the full workspace structure: `[workspace.aliases]`, `[dependencies]`, and `[build.targets]`.
+</Aside>

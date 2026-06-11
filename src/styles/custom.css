@@ -1,0 +1,145 @@
+/* Accent color override per UI-SPEC §Color.
+   Accent (10%): #0E7490 (Tailwind cyan-700) — engineering tool feel.
+   Applied to: active nav item, inline links, CTA button, code language badge.
+   Do NOT modify other Starlight theme tokens in Phase 4. */
+:root {
+  --sl-color-accent: #0E7490;        /* cyan-700 */
+  --sl-color-accent-high: #164E63;   /* cyan-900 — hover/active states */
+  --sl-color-accent-low: #ECFEFF;    /* cyan-50 — subtle accent tints */
+
+  /* Brand typography — Inter for prose, JetBrains Mono for code + labels. */
+  --sl-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Fira Code', Menlo,
+    Consolas, monospace;
+}
+
+/* Brand-teal inline bold (the "colored bold text" from the wireframe).
+   Bright teal on dark navy, deeper teal on white. */
+:root:not([data-theme='light']) { --dl-bold: #2aa6b8; }  /* Dark Teal */
+:root[data-theme='light']       { --dl-bold: #1e7a8c; }  /* Light Teal */
+
+/* ── Dark theme surfaces (mockup slate palette) ──────────────────────
+   Cool slate background + panels, per the approved wireframe. Scoped
+   with :not([data-theme='light']) so it applies to dark (and the no-JS
+   default, which is dark) but never bleeds into light mode — important
+   because customCss is unlayered and would otherwise outrank Starlight's
+   layered light-theme tokens.
+     Background : #0B1220   Panels : #111c30   Borders : #1e2a40
+     Teal glow  : #2aa6b8                                              */
+:root:not([data-theme='light']) {
+  --sl-color-black: #0B1220;         /* darkest surface → page background */
+  --sl-color-gray-6: #111c30;        /* panels, masthead, sidebar */
+  --sl-color-gray-5: #1e2a40;        /* borders / hairlines */
+}
+
+/* Teal "blob" bloom behind the whole hero intro — full-bleed across the
+   splash main, brightest just below the masthead and fading down through the
+   CTAs (matches the wireframe). data-has-hero is on <html>, so this only
+   affects the splash landing page. */
+:root:not([data-theme='light'])[data-has-hero] main {
+  background-image: radial-gradient(
+    1000px 620px at 62% 20px,
+    rgba(42, 166, 184, 0.13),        /* Dark Teal #2aa6b8 — softened */
+    transparent 72%
+  );
+  background-repeat: no-repeat;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Landing hero — large, centered logo as the focal point.
+   Overrides Starlight's default two-column splash hero (text left / image
+   right) with a single centered column: the Primary+Tagline lockup sits on
+   top at large size, with the CTA buttons centered beneath it.
+   Scoped to [data-has-hero] (only the splash landing page sets that attr).
+   ───────────────────────────────────────────────────────────────────────── */
+[data-has-hero] .hero {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+  /* Starlight's desktop hero adds up to 10rem of padding-block; compress the
+     bottom so the body headline sits close beneath the logo + CTAs. */
+  padding-block: clamp(1.5rem, 5vmin, 3rem) 0.75rem;
+}
+[data-has-hero] .hero > img,
+[data-has-hero] .hero > picture,
+[data-has-hero] .hero > .hero-html {
+  order: -1;                 /* logo above the text/buttons */
+  width: min(90%, 30rem);    /* hero lockup (~up to 480px) */
+  max-width: 480px;
+  height: auto;
+}
+[data-has-hero] .hero .stack { align-items: center; }
+[data-has-hero] .hero .actions { justify-content: center; }
+
+/* Masthead logo — enlarge well beyond Starlight's default (which ties the logo
+   height to the nav bar). Keep the bar height fixed and trim the vertical
+   padding so the logo can grow within the same masthead. */
+:root {
+  --sl-nav-height: 4.75rem;
+  --sl-nav-pad-y: 0.3rem;
+}
+.site-title { margin-block: 0; }
+.site-title img { height: 3.2rem; max-width: none; }
+
+/* The Primary+Tagline lockup already contains the DEAL wordmark and tagline,
+   so visually hide the duplicate text title + tagline (kept in the DOM for
+   screen readers and SEO). */
+[data-has-hero] .hero h1[data-page-title],
+[data-has-hero] .hero .tagline {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Docs layout (furo-style): pin the right-hand "On this page" TOC to the right
+   edge of the viewport at a fixed sidebar width, and center the article in the
+   space between the two sidebars. Starlight's default splits the leftover width
+   so the TOC floats mid-page on wide screens with empty space beyond it. */
+@media (min-width: 72rem) {
+  [data-has-sidebar][data-has-toc] .main-pane {
+    width: calc(100% - var(--sl-sidebar-width));
+    --sl-content-margin-inline: auto;
+  }
+  .right-sidebar-container {
+    width: var(--sl-sidebar-width);
+  }
+  .right-sidebar {
+    right: 0;
+    left: auto;
+    width: var(--sl-sidebar-width);
+  }
+}
+
+/* The splash page renders an empty Starlight content footer (meta + pagination
+   links) with a 3rem top margin below our custom footer, leaving a tall blank
+   gap. Hide it on the landing — our own footer replaces it. */
+[data-has-hero] main footer.sl-flex { display: none; }
+
+/* Hero CTA buttons — match the landing wireframe:
+   filled primary that brightens + lifts on hover, and a ghost/outline
+   "minimal" button with an accent border on hover. */
+[data-has-hero] .hero .sl-link-button {
+  border-radius: 9px;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+              color 0.15s ease, transform 0.15s ease;
+}
+[data-has-hero] .hero .sl-link-button.primary:hover {
+  background-color: #1597b0;   /* brighter cyan than accent (#0E7490) */
+  color: #fff;
+  transform: translateY(-1px);
+}
+[data-has-hero] .hero .sl-link-button.minimal {
+  border: 1px solid var(--sl-color-gray-5);
+}
+[data-has-hero] .hero .sl-link-button.minimal:hover {
+  border-color: var(--sl-color-accent);
+  background-color: var(--sl-color-gray-6);
+  color: var(--sl-color-white);
+  text-decoration: none;
+  transform: translateY(-1px);
+}

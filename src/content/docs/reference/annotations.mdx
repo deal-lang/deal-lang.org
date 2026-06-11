@@ -1,0 +1,180 @@
+---
+title: Annotations
+description: DEAL annotation system — @header, @confidence, @rationale, @assumes, @simulation, and more.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Annotations attach queryable metadata to DEAL elements. They use a two-tier system: declaration-level (no prefix for structural) and annotation-level (with `@category:` prefix for semantic metadata). Annotations appear inside definition and composition bodies.
+
+## @header Block
+
+The `@header` block is a file-level annotation capturing configuration management fields:
+
+```deal
+@header {
+    path:       packages/vehicle/motor.deal
+    schema:     deal/0.1
+    created:    2026-05-16T09:30:00Z by "David Dunnock"
+    modified:   2026-05-16T12:00:00Z by "David Dunnock"
+    hash:       sha256:pending
+    status:     draft
+    marking:    Unclassified
+}
+```
+
+CM fields: `path`, `schema`, `created`, `modified`, `reviewed`, `hash`, `status` (draft|review|baseline|superseded), `baseline`, `marking`.
+
+The `by "Name <email>"` clause identifies the human author. The optional `via tool-id` clause identifies the authoring tool.
+
+## @confidence
+
+Expresses the author's confidence level in an estimate or design choice, as a decimal 0.0–1.0:
+
+```deal
+package vehicle.motor;
+
+part def TractionMotor {
+    @confidence: 0.90
+
+    public (
+        attribute peakPower : Real [1] = 250.0;
+    )
+}
+```
+
+## @rationale
+
+Explains the reasoning behind a design decision:
+
+```deal
+package vehicle.motor;
+
+part def TractionMotor {
+    @rationale: "IPM selected over induction for efficiency at partial load"
+}
+```
+
+## @assumes
+
+Documents assumptions the element relies on:
+
+```deal
+package vehicle.motor;
+
+part def TractionMotor {
+    @assumes: "Rare earth magnet supply chain stable through 2030"
+}
+
+requirement def REQ_THM_001 {
+    @assumes: "Ambient temperature range per MIL-STD-810H Method 501.7"
+}
+```
+
+## @concerns
+
+Documents known risks or concerns:
+
+```deal
+package vehicle.motor;
+
+part def TractionMotor {
+    @concerns: "Demagnetization risk at temperatures above 180C"
+}
+```
+
+```dealx
+[<subsystem Thermal>]
+    @concerns: "Heat exchanger sizing not finalized — affects front-end packaging"
+[</subsystem>]
+```
+
+## @simulation
+
+The `@simulation:<<computes>>` annotation binds a simulation to an element. The multi-field brace syntax (SD-15) carries the simulation contract:
+
+```deal
+package vehicle.motor;
+
+part def TractionMotor {
+
+    @simulation:<<computes>> efficiencyMap {
+        equation: "2D lookup: torque x speed -> efficiency";
+        tool: "matlab";
+        entry: "simulations/dynamics/motor_efficiency.m";
+        fidelity: "empirical";
+    }
+
+    @simulation:<<computes>> thermalDerating {
+        equation: "Power limit = f(winding_temp, magnet_temp)";
+        tool: "python";
+        entry: "simulations/thermal/motor_thermal.py";
+        fidelity: "analytical";
+    }
+}
+```
+
+The `tool:` value identifies the simulator; `entry:` is the file path; `fidelity:` is a descriptive label. These fields are referenced by `[<satisfy>]` evidence blocks in `.dealx` files.
+
+System-level simulation annotations on `.dealx` compositions:
+
+```dealx
+[<system EVPlatform>]
+
+    @simulation:<<computes>> vehicleDynamics {
+        equation: "Longitudinal dynamics: F_net = F_motor - F_drag - F_roll - F_grade";
+        tool: "matlab";
+        entry: "simulations/dynamics/vehicle_dynamics.m";
+        fidelity: "6DOF";
+    }
+
+    @simulation:<<validates against>> DynoTest_2026Q2 {
+        source: "test/data/dyno-results-2026-q2.csv";
+        tolerance: 0.03;
+    }
+
+[</system>]
+```
+
+## @trace
+
+The `@trace:` annotation attaches traceability metadata on composition blocks. See [Traceability](/reference/traceability/) for the full reference.
+
+```dealx
+[<subsystem EnergyStorage>]
+
+    @trace:<<satisfies>> REQ_BAT_001
+    @trace:<<partially satisfies>> REQ_BAT_002 {
+        coverage: 0.8;
+        gap: "30-min charge target met at 25C; untested below 0C";
+    }
+
+[</subsystem>]
+```
+
+## @behavioral
+
+The `@behavioral:` annotation marks what behaviors an element performs:
+
+```dealx
+[<subsystem Propulsion>]
+
+    @behavioral:<<performs>> Accelerate
+    @behavioral:<<performs>> RegenerativeBrake
+
+[</subsystem>]
+```
+
+## Annotation Syntax Summary
+
+| Form | Example | Use |
+|------|---------|-----|
+| Inline single value | `@confidence: 0.85` | Scalar metadata |
+| Inline string | `@rationale: "..."` | Text metadata |
+| Multi-field block | `@simulation:<<computes>> name { ... }` | Structured metadata |
+| Trace relation | `@trace:<<satisfies>> REQ_ID` | Traceability |
+| Trace relation with body | `@trace:<<partially satisfies>> REQ_ID { coverage: 0.8; ... }` | Partial trace |
+
+<Aside type="tip">
+All annotation examples are derived from `spec/examples/showcase/packages/vehicle/motor.deal` and `model/vehicle.dealx`. These files show real annotation patterns on a complete subsystem.
+</Aside>

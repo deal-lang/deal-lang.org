@@ -1,0 +1,196 @@
+---
+title: Core Concepts
+description: The building blocks of DEAL — definitions, compositions, requirements, traceability, and units.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+DEAL organizes systems models into five core building blocks. This page introduces each concept with examples derived from the EV platform showcase.
+
+## Definitions (.deal files)
+
+**Definitions** describe the structure of system elements: parts, ports, attributes, requirements, and needs. They live in `.deal` files.
+
+A `part def` declares a structural element with typed attributes and typed ports:
+
+```deal
+package vehicle.motor;
+
+import deal.std.units.{kg, kW, Nm, rpm};
+import interfaces.{RegenPowerPort, ShaftPort, CANBus};
+
+/** Permanent magnet synchronous motor for EV traction. */
+part def TractionMotor {
+    public (
+        in port powerIn : RegenPowerPort [1];
+        out port shaftOut : ShaftPort [1];
+        inout port canBus : CANBus [1];
+
+        attribute peakPower : Power [1] = kW(250);
+        attribute peakTorque : Torque [1] = Nm(430);
+        attribute motorMass : Mass [1] = kg(35);
+    )
+}
+```
+
+## Requirements
+
+**Requirements** extend `part def` semantics with verifiable thresholds and accepted verification methods. A `requirement def` must name a threshold attribute and a comparison operator.
+
+This snippet is lifted directly from `packages/requirements/system.deal` in the showcase:
+
+```deal
+package requirements.system;
+
+import deal.std.units.{km};
+
+/** The vehicle shall achieve a minimum range on a single charge. */
+requirement def REQ_SYS_001 {
+    public (
+        attribute text : String [1] = "The vehicle shall achieve a minimum range of 300 miles on a single full charge under EPA combined cycle conditions.";
+        attribute minRange : Length [1] = km(483);
+        attribute testCondition : String [1] = "EPA combined cycle";
+    )
+
+    verification {
+        accepts: [simulation, test];
+        rejects: [analysis, inspection];
+        threshold: minRange;
+        operator: ">=";
+    }
+}
+```
+
+A `need def` captures stakeholder intent without quantitative thresholds:
+
+```deal
+package requirements.needs;
+
+/** Customers want to drive long distances without range anxiety. */
+need def NEED_RANGE {
+    public (
+        attribute text : String [1] = "Vehicle owners shall be able to complete a full day of driving without needing to recharge.";
+        attribute stakeholder : String [1] = "End Customer";
+        attribute priority : String [1] = "critical";
+    )
+}
+```
+
+## Compositions (.dealx files)
+
+**Compositions** wire definitions together into system architectures. They live in `.dealx` files.
+
+A `[<traceability>]` block links requirements to the parts that satisfy them:
+
+```dealx
+package vehicle;
+
+import requirements.system.{REQ_SYS_001};
+import vehicle.motor.{TractionMotor};
+
+[<traceability EVPlatformTraces>]
+
+    [<satisfy requirement="REQ_SYS_001" by="TractionMotor"
+        method="simulation"
+    >] => {
+        actualRange : Length;
+    }
+
+        criteria {
+            actualRange >= REQ_SYS_001.minRange
+        }
+
+    [</satisfy>]
+
+[</traceability>]
+```
+
+<Aside type="note">
+  `.dealx` files use the `.dealx` file extension to signal that they contain composition constructs. The `deal` CLI selects the grammar mode from the file extension.
+</Aside>
+
+## Traceability
+
+Traceability links requirements to design elements. Inside a `[<traceability>]` block, DEAL uses two constructs:
+
+- A `[<satisfy>]` block asserts that a design element satisfies a requirement, optionally declaring a return shape (`=> { ... }`), `criteria`, and `evidence` for verification.
+- An `[<allocate>]` tag relates two elements with an explicit `relationship` kind — for example `<<derives>>` or `<<refines>>`.
+
+```dealx
+[<traceability>]
+    [<allocate from="NEED_RANGE" to="REQ_SYS_001" relationship=<<derives>> />]
+
+    [<satisfy requirement="REQ_SYS_001" by="EVPlatform" method="simulation">] => {
+        actualRange : Length;
+    }
+        criteria {
+            actualRange >= REQ_SYS_001.minRange
+        }
+    [</satisfy>]
+[</traceability>]
+```
+
+These relations live in `.dealx` files and are exported to ReqIF as `SpecRelation` entries.
+
+## Views (.dealx → .dealview)
+
+Diagrams live in a third file type, `.dealview`. A view is a presentation *sidecar*: it picks which model elements to draw, how to lay them out, and how to style them — without changing the model. A view co-located with a composition (`vehicle.dealview` beside `vehicle.dealx`) is automatically that file's diagram.
+
+```dealview
+view {
+    title: "EV Platform — System Structure";
+    viewpoint: structure;
+    direction: left-to-right;
+}
+
+include {
+    model.EVPlatform.**;
+}
+```
+
+Views are one-way — `.deal` and `.dealx` files never reference them, and deleting a view never changes `deal build` output. See the [Views reference](/reference/views/) for membership queries, layout, and theming.
+
+## Units and dimensions
+
+DEAL enforces dimensional correctness. Every quantity attribute carries a unit, and `deal check` verifies that expressions are dimensionally consistent.
+
+```deal
+package requirements.system;
+
+import deal.std.units.{kg, s, kWh, degC};
+
+requirement def REQ_BAT_003 {
+    public (
+        attribute text : String [1] = "The battery shall operate within the temperature range of -30°C to +55°C.";
+        attribute minTemp : Temperature [1] = degC(-30);
+        attribute maxTemp : Temperature [1] = degC(55);
+    )
+
+    verification {
+        accepts: [test];
+        threshold: [minTemp, maxTemp];
+        operator: [">=", "<="];
+    }
+}
+```
+
+Units come from the `deal-std` standard library. See the [Units reference](/reference/units/) for the full list of available SI and imperial units.
+
+## Imports
+
+DEAL uses a qualified package system. The `import` statement brings names into scope from another package:
+
+```deal
+package vehicle.drivetrain;
+
+import deal.std.units.{kg, kW, Nm};
+import interfaces.{HVDCPort, CoolantPort};
+```
+
+Package paths map to directories in the workspace. The `[workspace.aliases]` section in `deal.toml` allows short aliases for long paths.
+
+## Next steps
+
+- [Language Reference — Definitions](/reference/definitions/) — full `part def`, `port def`, `attribute def` syntax
+- [Language Reference — Requirements](/reference/requirements/) — `requirement def`, `need def`, verification blocks
+- [CLI Reference](/cli/overview/) — `deal check`, `deal build`, `deal parse`

@@ -1,0 +1,199 @@
+---
+title: Units
+description: DEAL unit system — SI dimensional algebra, unit literals, and explicit conversions.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+DEAL has a first-class unit system built on SI dimensional algebra. Units are defined as attribute defs in `deal-stdlib` and resolved through normal package imports. The Zig sema layer enforces dimensional consistency at `deal check` time.
+
+## Importing Units
+
+Units are imported from `deal.std.units` (the `deal-std` dependency):
+
+```deal
+import deal.std.units.{kg, km, hr, kWh, min, degC, s, V, A, kW};
+```
+
+After import, use unit names as function-call literals (SD-13 / PS-6):
+
+```deal
+package vehicle.motor;
+
+import deal.std.units.{kg, V, kWh, min};
+
+part def MotorSpec {
+    public (
+        attribute mass : Mass [1] = kg(1500);
+        attribute voltage : Voltage [1] = V(800);
+        attribute energy : Energy [1] = kWh(85);
+        attribute chargeTime : Duration [1] = min(30);
+    )
+}
+```
+
+## SI Base Dimensions
+
+`deal-stdlib` declares seven SI base dimensions in `packages/units/dimensions.deal`. Each dimension carries a 7-exponent SI vector `[M, L, T, I, Theta, N, J]`:
+
+```deal
+/** Mass — SI base quantity. Symbol M. SI base unit: kilogram (kg). */
+attribute def Mass {
+    attribute si_M  : Integer = 1;
+    attribute si_L  : Integer = 0;
+    attribute si_T  : Integer = 0;
+    attribute si_I  : Integer = 0;
+    attribute si_TH : Integer = 0;
+    attribute si_N  : Integer = 0;
+    attribute si_J  : Integer = 0;
+}
+
+/** Speed — L*T^-1. Derived from Length/Time (e.g., m/s). */
+attribute def Speed {
+    attribute si_M  : Integer = 0;
+    attribute si_L  : Integer = 1;
+    attribute si_T  : Integer = -1;
+    attribute si_I  : Integer = 0;
+    attribute si_TH : Integer = 0;
+    attribute si_N  : Integer = 0;
+    attribute si_J  : Integer = 0;
+}
+```
+
+The exponent vectors are data-driven — the Zig sema reads them from the stdlib rather than hardcoding dimension knowledge (D-56). User-defined dimensions work automatically.
+
+## Unit Definitions
+
+Units specialise their dimension and carry an `si_factor` conversion to the SI base unit:
+
+```deal
+package deal.std.units;
+
+import .dimensions.{Length, Energy, Temperature};
+
+/** km — kilometre. Factor: 1000 m. */
+attribute def km <<specializes>> Length {
+    attribute si_factor : Real = 1000.0;
+}
+
+/** kWh — kilowatt-hour. Factor: 3600000 J. */
+attribute def kWh <<specializes>> Energy {
+    attribute si_factor : Real = 3600000.0;
+}
+
+/** degC — degrees Celsius. Factor: 1.0 (same scale as K; offset handled by sema). */
+attribute def degC <<specializes>> Temperature {
+    attribute si_factor : Real = 1.0;
+}
+```
+
+## Derived-Unit Arithmetic (D-55)
+
+`deal check` evaluates unit expressions using SI exponent vector addition and subtraction. For example, `km(200) / hr(1)` has dimension vector `[0, 1-0, -1-0, ...]` = `[0, 1, -1, ...]` = Speed (L¹T⁻¹). This is a valid `Speed` value.
+
+The showcase uses derived units in requirement attributes:
+
+```deal
+package requirements.system;
+
+import deal.std.units.{km, s};
+
+requirement def REQ_SYS_001 {
+    public (
+        attribute minRange : Length [1] = km(483);
+    )
+}
+
+requirement def REQ_SYS_002 {
+    public (
+        attribute maxTime : Duration [1] = s(6.0);
+    )
+}
+```
+
+## Explicit Conversions (D-57)
+
+Mixed-unit comparisons require explicit conversion — DEAL does not silently normalise to SI. If a threshold is in `lb` and an attribute is in `kg`, you must call the conversion function.
+
+The `to_kg()` conversion function is provided by `deal-stdlib` for imperial-to-SI mass conversion. This is a deliberate defense-audience posture — explicit conversions are auditable. Implicit normalisation was considered and rejected (D-57).
+
+## Dimensional Error Examples
+
+The following examples show diagnostics produced by `deal check`. They are **intentional errors** and are marked `error-expected` so the CI parse gate skips them.
+
+**E2500 — Dimension mismatch (D-55):**
+
+```deal error-expected
+// error[E2500]: dimension mismatch — expected Mass, got Voltage
+attribute wrongType : Mass = V(800);
+```
+
+`V` (Voltage, M¹L²T⁻³I⁻¹) does not match `Mass` (M¹). The compiler rejects the assignment at `deal check` time.
+
+**E2501 — Mixed-unit comparison (D-57):**
+
+```deal error-expected
+// error[E2501]: mixed-unit comparison requires explicit conversion — use to_kg(...)
+attribute massLb : Mass = lb(3300);
+attribute massKg : Mass = kg(1500);
+// Comparing massLb and massKg directly is an error; use to_kg(massLb) first
+```
+
+A comparison between attributes with different unit scales of the same dimension requires an explicit conversion call.
+
+<Aside type="note">
+The `error-expected` fence marker tells the CI snippet gate to skip `deal parse` for these blocks. They document diagnostic behaviour, not valid DEAL source.
+</Aside>
+
+## Available Units (deal-stdlib)
+
+### Mass
+`kg`, `g`
+
+### Length
+`m`, `km`, `cm`, `mm`
+
+### Time
+`s`, `ms`, `min`, `hr`
+
+### Temperature
+`K`, `degC`
+
+### Electric Current
+`A`, `mA`
+
+### Energy
+`J`, `kJ`, `MJ`, `Wh`, `kWh`, `MWh`
+
+### Power
+`W`, `kW`, `MW`
+
+### Voltage
+`V`, `mV`, `kV`
+
+### Resistance
+`ohm`, `kohm`, `Mohm`
+
+### Force
+`N`, `kN`
+
+### Charge
+`C`
+
+### Speed
+`m_per_s`, `km_per_hr`
+
+### Amount
+`mol`
+
+### Luminosity
+`cd`
+
+### Duration (alias for Time, used in requirement contexts)
+`s_dur`, `min_dur`
+
+See `deal-stdlib/packages/units/si.deal` and `imperial.deal` for the full source.
+
+<Aside type="tip">
+Unit literals use the function-call form from PS-6 / SD-13: `kg(1500)`, `V(800)`, `kWh(85)`. Import the unit symbols before use: `import deal.std.units.{kg, V, kWh}`.
+</Aside>

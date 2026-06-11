@@ -1,0 +1,154 @@
+---
+title: Compositions
+description: DEAL composition constructs in .dealx files — assembling systems from components.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Composition files (`.dealx`) declare **how** your system is assembled — instantiating parts, wiring connections, exposing interfaces, and declaring traceability. All definitions live in `.deal`; compositions live in `.dealx`.
+
+## System and Subsystem Tags
+
+The top-level container is `[<system>]`. Systems are composed of `[<subsystem>]` blocks.
+
+```dealx
+[<system EVPlatform>]
+
+    @confidence: 0.75
+    @assumes: "Single-motor RWD base; dual-motor AWD via variant specialization"
+
+    [<subsystem EnergyStorage>]
+
+        [<BatteryPack as="battery"
+            totalCapacity={kWh(89)}
+            usableCapacity={kWh(85)}
+            packMass={kg(550)}
+            nominalVoltage={V(800)}
+        />]
+
+        [<expose battery.hvOut as="hvPowerOut" />]
+        [<expose battery.coolantIn as="coolantIn" />]
+
+    [</subsystem>]
+
+[</system>]
+```
+
+Each `[<SubsystemType as="name" ... />]` instantiates a component. The `as=` attribute is the instance name used for wiring.
+
+## Component Instantiation
+
+Components are instantiated with JSX-like self-closing tags. Attribute values are set with `{}` braces:
+
+```dealx
+[<TractionMotor as="motor"
+    peakPower={kW(250)}
+    continuousPower={kW(180)}
+    peakTorque={Nm(430)}
+    motorMass={kg(35)}
+/>]
+```
+
+## Connections
+
+`[<connect>]` wires ports between instances. The `via=` attribute names the physical medium (`connection def`) and `carrying=` names the logical content (`flow def`):
+
+```dealx
+[<connect from="inverter.acOut" to="motor.powerIn"
+    via={HVDCCable {
+        wireGauge: "2 AWG",
+        maxVoltage: V(850),
+        maxCurrent: A(400),
+        length: m(0.5)
+    }}
+    carrying={PowerDelivery {
+        voltage: V(800),
+        maxCurrent: A(350)
+    }}
+/>]
+```
+
+For simple mechanical connections with no medium or content metadata, omit `via=` and `carrying=`:
+
+```dealx
+[<connect from="Propulsion.driveShaft" to="Drivetrain.rearWheelL" />]
+```
+
+## Expose
+
+`[<expose>]` surfaces an internal port as a subsystem boundary port, making it available for system-level wiring:
+
+```dealx
+[<expose battery.hvOut as="hvPowerOut" />]
+[<expose motor.coolantIn as="coolantIn" />]
+```
+
+## Traceability Blocks
+
+A `[<traceability>]` block encloses all traceability and verification declarations for the system:
+
+```dealx
+[<traceability EVPlatformTraces>]
+
+    [<allocate from="NEED_RANGE" to="REQ_SYS_001"
+        relationship=<<derives>>
+    />]
+
+    [<satisfy requirement="REQ_SYS_001" by="EVPlatform"
+        method="simulation"
+    >] => {
+        actualRange : Length;
+        margin : Length;
+        marginPercent : Real;
+    }
+
+        criteria {
+            actualRange >= REQ_SYS_001.minRange
+        }
+
+        evidence simulation {
+            source: "simulations/dynamics/range_model.py";
+            binding: "range_model";
+            maps {
+                totalRange -> actualRange
+            }
+        }
+
+        compute {
+            margin = actualRange - REQ_SYS_001.minRange;
+            marginPercent = margin / REQ_SYS_001.minRange * 100;
+        }
+
+    [</satisfy>]
+
+[</traceability>]
+```
+
+See [Traceability](/reference/traceability/) for full details on `[<satisfy>]`, `[<allocate>]`, and `[<validate>]`.
+
+## Annotations on Compositions
+
+Annotations can appear on subsystem blocks and system tags, just as on definitions:
+
+```dealx
+[<subsystem Thermal>]
+
+    @confidence: 0.70
+    @concerns: "Heat exchanger sizing not finalized — affects front-end packaging"
+
+    [<CoolantPump as="pump" maxFlowRate={LPM(15)} power={W(200)} />]
+
+[</subsystem>]
+```
+
+## Inline Definitions
+
+`.dealx` files can contain inline `part def`, `port def`, and `attribute def` declarations for one-off types used only within the composition. `deal fmt` warns if an inline definition is referenced by multiple compositions.
+
+<Aside type="caution">
+`.deal` files never import from `.dealx` files. The dependency direction is one-way: compositions import definitions, not the reverse.
+</Aside>
+
+<Aside type="tip">
+All examples are derived from the EV platform showcase at `spec/examples/showcase/model/vehicle.dealx` and `model/traceability.dealx`.
+</Aside>

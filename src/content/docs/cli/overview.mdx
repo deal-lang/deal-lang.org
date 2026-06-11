@@ -1,0 +1,157 @@
+---
+title: CLI Overview
+description: DEAL CLI reference — deal parse, check, fmt, build, init, and install.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The `deal` command-line tool is the compiler driver for the DEAL language. It provides subcommands for parsing, checking, formatting, building, and scaffolding DEAL projects.
+
+## deal parse
+
+Parse one or more `.deal` or `.dealx` source files and emit AST JSON to stdout.
+
+```bash
+deal parse packages/vehicle/motor.deal
+deal parse model/vehicle.dealx
+```
+
+Exit codes: `0` on success, `1` on parse error, `2` on internal error (I/O failure).
+
+On success, raw AST JSON is written to stdout. On parse error, diagnostics are written to stderr and stdout is empty.
+
+## deal check
+
+Run semantic checks on source files or a directory. Exits 1 on any error-severity diagnostic.
+
+```bash
+deal check packages/requirements/system.deal
+deal check tests/showcase/
+```
+
+If a `deal.toml` is present, `deal check` verifies that all declared dependencies are installed. An uninstalled dependency emits:
+
+```bash
+error[E2402]: dependency 'deal-std' not resolved — run 'deal install'
+```
+
+Dimensional algebra checks (D-55/D-56/D-57) fire during `deal check`:
+
+```bash
+error[E2500]: dimension mismatch — expected Mass, got Voltage
+error[E2501]: mixed-unit comparison requires explicit conversion — use to_kg(...)
+error[E2502]: unknown unit 'lb' — is 'deal-std' installed? Run 'deal install'
+```
+
+## deal fmt
+
+Format source files in place. Requires `git config user.name` to be set (FS-3).
+
+```bash
+deal fmt packages/vehicle/motor.deal
+deal fmt --check packages/requirements/system.deal
+deal fmt --stdout packages/vehicle/motor.deal
+```
+
+| Flag | Effect |
+|------|--------|
+| *(none)* | Format in place (atomic temp+rename) |
+| `--check` | Exit 1 if any file would change; no files written |
+| `--stdout` | Write formatted output to stdout; file unchanged |
+
+`deal fmt` normalises SysML v2 symbolic operators (`:>` to `<<specializes>>`, `:>>` to `<<redefines>>`) and enforces DEAL canonical form.
+
+## deal build
+
+Build a target from source files or a directory.
+
+```bash
+deal build --target sysml-v2 tests/showcase/
+deal build --target reqif tests/showcase/
+deal build --target sysml-v2 --validate tests/showcase/
+```
+
+| Flag | Effect |
+|------|--------|
+| `--target sysml-v2` | Emit SysML v2 JSON to `build/sysml-v2/` |
+| `--target reqif` | Emit ReqIF 1.2 `.reqifz` to `build/reqif/` |
+| `--validate` | Run offline schema validation on the output |
+| `--output <path>` | Override the output path |
+
+On success, `deal build` prints:
+
+```bash
+deal build: wrote build/reqif/model.reqifz (13 requirements, 0 relations)
+```
+
+## deal init
+
+Scaffold a new DEAL project in `./<name>/`.
+
+```bash
+deal init my-project
+```
+
+On success:
+
+```bash
+deal init: project 'my-project' created in ./my-project/
+Next: cd my-project && deal install
+```
+
+Creates the PS-8 directory layout: `deal.toml`, `.deal/` (gitignored), `model/`, `packages/`, `simulations/`, `test/data/`, `docs/`. The scaffolded `deal.toml` wires `deal-std` as a git dependency:
+
+```toml
+[dependencies]
+deal-std = { git = "https://github.com/deal-lang/deal-stdlib", tag = "v0.4.0" }
+```
+
+The starter model includes a `part def`, `port def`, and a composition with a satisfy block. `deal check` passes immediately after `deal init` + `deal install`.
+
+If the target directory already exists and is non-empty:
+
+```bash
+error: directory './my-project' already exists and is not empty
+  = note: remove it manually or choose a different project name
+```
+
+## deal install
+
+Resolve dependencies declared in `deal.toml` and write `deal.lock`.
+
+```bash
+deal install
+```
+
+Git deps are cloned into `.deal/deps/<name>/` at the exact tag/rev. Local-path deps are referenced in place.
+
+```bash
+Downloading deal-std v0.4.0 from github.com/deal-lang/deal-stdlib...
+deal install: 1 dependencies resolved, deal.lock updated
+```
+
+If `deal.lock` changes (e.g., a tag was re-pointed):
+
+```bash
+deal install: deal.lock updated — commit deal.lock to reproduce this build
+```
+
+## Global Flags
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Emit machine-readable JSON (D-32 envelope) instead of human-readable output |
+| `--color [auto\|always\|never]` | ANSI color output (default: `auto`) |
+| `--verbose` / `-v` | Increase output verbosity |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | User error — parse/sema error, validation failure, `--check` found a file to reformat |
+| `2` | Internal error — I/O failure, FFI failure, OOM |
+
+<Aside type="tip">
+After scaffolding a project: `deal init my-project && cd my-project && deal install && deal check packages/ && deal build --target sysml-v2 packages/` should all exit 0.
+</Aside>

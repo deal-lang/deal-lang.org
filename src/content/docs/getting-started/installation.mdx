@@ -1,0 +1,93 @@
+---
+title: Installation
+description: Build the DEAL CLI from source and set up the VS Code extension to start authoring system models.
+---
+
+import { Tabs, TabItem, Aside, Steps } from '@astrojs/starlight/components';
+
+DEAL is in active pre-release development. The compiler core is a Zig static library (`libdeal.a`) wrapped by a Rust CLI, so today you install it by **building from source**. There are no published package-manager releases yet.
+
+<Aside type="caution" title="Pre-release">
+  Prebuilt binaries and `npm` / `cargo install` packages are not available yet. The build-from-source steps below are the supported install path during the current milestone.
+</Aside>
+
+## Prerequisites
+
+You need two toolchains on your `PATH`:
+
+- **Zig 0.16.0** — builds the compiler core. Install from [ziglang.org/download](https://ziglang.org/download/) and confirm with `zig version` (it must report `0.16.0`).
+- **Rust (stable)** — builds the CLI, which links the Zig library through a small C ABI. Install via [rustup](https://rustup.rs/) and confirm with `cargo --version`.
+
+A C linker (the one your platform's Rust toolchain already uses) and `git` are also required.
+
+## Build the CLI
+
+<Steps>
+
+1. Clone the repository and fetch the `spec` submodule (the grammar and showcase corpus the tests resolve against):
+
+   ```bash
+   git clone https://github.com/deal-lang/deal.git
+   cd deal
+   git submodule update --init --recursive
+   ```
+
+2. Build the release binary. Cargo's build script invokes `zig build` automatically to produce `libdeal.a`, then links and compiles the `deal` CLI — so this one command builds the whole pipeline:
+
+   ```bash
+   cargo build --release
+   ```
+
+   The compiled binary is written to `target/release/deal`.
+
+3. Put it on your `PATH`:
+
+   <Tabs>
+     <TabItem label="macOS / Linux">
+       ```bash
+       sudo cp target/release/deal /usr/local/bin/
+       ```
+     </TabItem>
+     <TabItem label="Windows">
+       Copy `target\release\deal.exe` to a directory on your `PATH`, or add `target\release\` to `PATH`.
+     </TabItem>
+   </Tabs>
+
+</Steps>
+
+## Verify the installation
+
+```bash
+deal --version
+```
+
+You should see `deal 0.1.0`. Run `deal --help` to list the available subcommands.
+
+<Aside type="tip">
+  If `cargo build` fails with a message about `zig build`, make sure `zig` is on your `PATH` and reports version `0.16.0` — the FFI build script shells out to it.
+</Aside>
+
+## What the CLI can do today
+
+These subcommands are implemented and exercised by the test suite:
+
+- `deal parse` — tokenize and parse `.deal` / `.dealx` files and emit AST JSON.
+- `deal check` — run semantic and dimensional checks; `--verify` evaluates requirement criteria against captured evidence, `--simulations` validates simulation bindings, `--run-sims` re-runs stale simulations first.
+- `deal fmt` — format files in place (`--check` to verify, `--stdout` to preview).
+- `deal build --target sysml-v2 | reqif` — generate SysML v2 JSON or a ReqIF archive (`--validate` runs offline schema validation).
+- `deal init` — scaffold a new project.
+- `deal install` — resolve `deal.toml` dependencies and write `deal.lock`.
+- `deal simulate` — run simulations registered in `deal.sims.toml`.
+- `deal evidence` — capture and manage verification evidence.
+
+Import pipelines (`deal import`), documentation generation (`deal build --target docs`), and the desktop editor are planned for a later phase and are not available yet.
+
+## VS Code extension
+
+The DEAL extension provides `.deal` / `.dealx` syntax highlighting, bracket matching, comment toggling, a snippet library, and distinct file icons out of the box. When the `deal-lsp` language server is present it also delivers diagnostics, completion, hover, go-to-definition, formatting, and workspace symbols.
+
+The extension is not on the Marketplace yet, so install it from the [`vscode-deal`](https://github.com/deal-lang/vscode-deal) repository. See the [VS Code Setup](/cli/vscode-setup/) guide for full instructions.
+
+## Next steps
+
+With the CLI on your `PATH`, continue to [Your First Project](/getting-started/first-project/) to scaffold a model and build it to SysML v2.

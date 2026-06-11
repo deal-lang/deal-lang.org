@@ -1,0 +1,472 @@
+---
+title: DEAL
+description: A text-first authoring surface for model-based systems engineering, with a 100% mapping to KerML and the SysML v2 API.
+template: splash
+hero:
+  tagline: A text-first language for systems engineering
+  image:
+    light: ../../assets/DEAL_Primary_Tagline_Light_Color.svg
+    dark: ../../assets/DEAL_Primary_Tagline_Dark_Color.svg
+---
+
+import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import TermDemo from '../../components/TermDemo.astro';
+
+<div class="dl-landing">
+
+<p class="dl-headline">Manage your system models as <strong>plain text</strong> — readable, diffable, and fast.</p>
+
+<p class="dl-lead">DEAL is a text-first authoring surface for model-based systems engineering. Write requirements, architecture, interfaces, calculations, and verification as code that lives in Git — with a 100% mapping to KerML and the SysML&nbsp;v2 API.</p>
+
+<div class="dl-actions">
+  <a class="dl-btn primary" href="/getting-started/installation/">Get started →</a>
+  <a class="dl-btn ghost" href="https://github.com/deal-lang/deal">View on GitHub ↗</a>
+</div>
+
+{/* ── Positioning strip ─────────────────────────────────────────── */}
+<div class="dl-position">
+  <p>DEAL isn't a replacement for SysML&nbsp;v2 — it's <strong>the authoring surface for it.</strong> It replaces the textual notation with a syntax built for humans, and maps cleanly back to the standard.</p>
+  <div class="dl-chips">
+    <span class="dl-chip"><strong>text-first</strong> · diffs in Git</span>
+    <span class="dl-chip"><strong>lightweight</strong> · extremely fast</span>
+    <span class="dl-chip"><strong>100% mapping</strong> · KerML / SysML v2 API</span>
+    <span class="dl-chip"><strong>inline compute</strong> · + external sims</span>
+  </div>
+</div>
+
+{/* ── The problem ───────────────────────────────────────────────── */}
+<div class="dl-section">
+  <p class="dl-eyebrow">The problem</p>
+  <h2 class="dl-h2">Digital engineering promises a single source of truth. Today's tools fight you for it.</h2>
+  <div class="dl-trio">
+    <div class="dl-pain">
+      <span class="dl-num">01</span>
+      <h3>Sync is fragile</h3>
+      <p>Requirements in DOORS, architecture in Cameo, interfaces in spreadsheets, verification in test tools. Keeping a model synchronized across all of them is manual, error-prone, and perpetually out of date.</p>
+    </div>
+    <div class="dl-pain">
+      <span class="dl-num">02</span>
+      <h3>Versioning is an afterthought</h3>
+      <p>Binary model files don't diff, don't merge, and don't fit the version-control workflows software solved decades ago. Branching a system model shouldn't need a database administrator.</p>
+    </div>
+    <div class="dl-pain">
+      <span class="dl-num">03</span>
+      <h3>GUIs don't scale</h3>
+      <p>Clicking through a graphical tool to update every attribute, connection, and trace link is tedious and hostile to automation. What takes a line of text takes a dozen clicks.</p>
+    </div>
+  </div>
+</div>
+
+{/* ── The "aha": sim + validation CLI ───────────────────────────── */}
+<div class="dl-section">
+  <p class="dl-eyebrow">See it work</p>
+  <h2 class="dl-h2">Author compute in the model. Validate the whole thing from the command line.</h2>
+  <p class="dl-sub">Bind a part to a simulation, declare its verification criteria, then let the toolchain parse, dimensionally type-check, run the sims, and evaluate the thresholds — in one command.</p>
+
+```deal
+part def TractionMotor <<specializes>> ThermallyManaged {
+    @confidence: 0.90
+    @simulation:<<computes>> thermalDerating {
+        equation: "Power limit = f(winding_temp, magnet_temp)";
+        tool:     "python";
+        entry:    "simulations/thermal/motor_thermal.py";
+        fidelity: "analytical";
+    }
+}
+
+/** Verify peak power survives thermal derating. */
+requirement def REQ_MOT_001 {
+    verification {
+        accepts:   [simulation, test];
+        threshold: peakPower;
+        operator:  ">=";
+    }
+}
+```
+
+  <TermDemo />
+  <p class="dl-foot">Dimensional checking, simulation bindings, and verification thresholds are all part of the language — not bolted-on tooling.</p>
+</div>
+
+{/* ── Capabilities ──────────────────────────────────────────────── */}
+<div class="dl-section">
+  <p class="dl-eyebrow">What DEAL gives you</p>
+  <h2 class="dl-h2">A lightweight, extremely capable support structure for the language.</h2>
+
+  <CardGrid>
+    <Card title="Text-first & Git-native" icon="seti:git">
+      Plain `.deal` / `.dealx` files that diff, merge, branch, and review in a pull request. Grep it, script it, CI/CD it.
+    </Card>
+    <Card title="Inline calculations" icon="setting">
+      First-class `calc` and `constraint` definitions — dimensionally checked, with engineer-facing precision contracts (`sig 4`, `± 1%`).
+    </Card>
+    <Card title="Native sim + external hooks" icon="puzzle">
+      A built-in compute engine, plus a registry that farms heavy or legacy physics out to Python, MATLAB, and STK.
+    </Card>
+    <Card title="Requirements & verification" icon="approve-check">
+      Needs, requirements, use cases, satisfaction and verification — as first-class constructs with explicit traceability.
+    </Card>
+    <Card title="Standards interop" icon="random">
+      100% mapping to KerML and the SysML v2 API. Exports SysML v2 JSON and ReqIF (DOORS) via `deal build`.
+    </Card>
+    <Card title="Real editor support" icon="laptop">
+      Fast LSP, VS Code extension, and tree-sitter grammar for Neovim, Helix, Zed, and GitHub highlighting.
+    </Card>
+  </CardGrid>
+</div>
+
+{/* ── Tabbed examples ───────────────────────────────────────────── */}
+<div class="dl-section">
+  <p class="dl-eyebrow">Read the language</p>
+  <h2 class="dl-h2">Real snippets from the EV platform showcase.</h2>
+
+  <Tabs>
+    <TabItem label="requirement">
+```deal
+requirement def REQ_SYS_001 {
+    public (
+        attribute text     : String [1] = "The vehicle shall achieve a minimum
+                            range of 300 miles on a single full charge.";
+        attribute minRange : Length [1] = km(483);
+    )
+    verification {
+        accepts:   [simulation, test];
+        rejects:   [analysis, inspection];
+        threshold: minRange;
+        operator:  ">=";
+    }
+}
+```
+Requirements carry typed, unit-bearing attributes and a machine-checkable verification contract.
+    </TabItem>
+
+    <TabItem label="calc">
+```deal
+/** Pure function — composable inside any expression. */
+calc def MarginOfSafety(allowable : Pressure, actual : Pressure) : Real {
+    return allowable / actual - 1;
+}
+
+/** Return contract: precision + a named predicate (list form). */
+calc def Drag(rho : Density, v : Speed, area : Area, cd : Real) : Force
+        => ± percent(1), PositiveForce {
+    derived attribute q : Pressure = 0.5 * rho * v * v;
+    return q * area * cd;
+}
+```
+Dimensionally-checked compute in the model itself — compiled, fast, and governed by a precision contract.
+    </TabItem>
+
+    <TabItem label="constraint">
+```deal
+/** Parameterized predicate — reusable, callable from any boolean context. */
+constraint def PositiveForce(f : Force) {
+    require f >= N(0);
+}
+
+/** Multiple require lines are an implicit conjunction (all must hold). */
+constraint def ThermalWindow(t : Temperature) {
+    require t >= degC(-40);
+    require t <= degC(85);
+}
+```
+Named predicates mirror KerML Functions and Predicates — reusable invariants with full dimensional safety.
+    </TabItem>
+
+    <TabItem label="simulation registry">
+```toml
+# Maps @simulation annotations to executable code.
+[simulations.battery_thermal]
+tool     = "python"
+entry    = "thermal/battery_thermal.py"
+binds_to = "packages/vehicle/battery.deal::BatteryPack"
+inputs   = [
+  { model_path = "EnergyStorage.battery.packResistance", unit = "ohm" },
+  { model_path = "Thermal.coolantSupply.flowRate",       unit = "L/min" },
+]
+outputs  = [
+  { param = "coolantOutTemp", model_path = "...coolantOut.coolantTemp", unit = "degC" },
+]
+```
+A typed, unit-aware contract between the model and external tools — bindings are validated before anything runs.
+    </TabItem>
+  </Tabs>
+</div>
+
+{/* ── Compute split ─────────────────────────────────────────────── */}
+<div class="dl-section">
+  <p class="dl-eyebrow">Two complementary paths to compute</p>
+  <h2 class="dl-h2">Light and fast in-language. Heavy and external when you need it.</h2>
+  <div class="dl-split">
+    <div class="dl-lane">
+      <h3>In-language compute <span class="dl-tagm">native</span></h3>
+      <p>Dimensionally-checked expressions and `calc`/`constraint` definitions, compiled for speed and governed by an engineer-facing precision contract.</p>
+      <ul>
+        <li>Parametric and analysis logic lives in the single source of truth</li>
+        <li>Unit algebra catches dimensional errors at check time</li>
+        <li>Precision vocabulary: significant figures, relative tolerance</li>
+      </ul>
+    </div>
+    <div class="dl-lane">
+      <h3>External simulations <span class="dl-tagm">farm-out</span></h3>
+      <p>A registry maps `@simulation` annotations to executable code — heavy, black-box, or legacy physics — over a typed JSON protocol.</p>
+      <div class="dl-toolrow">
+        <span class="dl-tool">Python</span><span class="dl-tool">MATLAB</span><span class="dl-tool">STK</span><span class="dl-tool">+ JSON protocol</span>
+      </div>
+      <ul>
+        <li><code>deal simulate</code> runs one, all, or only stale bindings</li>
+        <li>Inputs/outputs bound to model paths with units</li>
+        <li>Results flow back into verification criteria</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{/* ── Standards & interop ───────────────────────────────────────── */}
+<div class="dl-section">
+  <p class="dl-eyebrow">Standards & interoperability</p>
+  <h2 class="dl-h2">A clean mapping back to the standards your program already runs on.</h2>
+  <p class="dl-sub">DEAL targets the same semantic domain as OMG SysML v2 / KerML. Your text is the source; the standard formats are build outputs — so DEAL slots into existing tools instead of replacing them.</p>
+  <div class="dl-flow">
+    <div class="dl-node dl-src"><span class="dl-big">.deal / .dealx</span><span class="dl-subt">your source, in Git</span></div>
+    <span class="dl-arrow">→</span>
+    <div class="dl-node"><span class="dl-big">deal build</span><span class="dl-subt">compiler toolchain</span></div>
+    <span class="dl-arrow">→</span>
+    <div class="dl-targets">
+      <div class="dl-node"><span class="dl-big">SysML v2 JSON</span><span class="dl-subt">KerML / SysML v2 API</span></div>
+      <div class="dl-node"><span class="dl-big">ReqIF XML</span><span class="dl-subt">DOORS &amp; downstream</span></div>
+    </div>
+  </div>
+</div>
+
+{/* ── Links band ────────────────────────────────────────────────── */}
+<div class="dl-section">
+  <p class="dl-eyebrow">For the people who verify before they trust</p>
+  <h2 class="dl-h2">Specifications, security, and references.</h2>
+  <div class="dl-links">
+    <a class="dl-lnk" href="https://github.com/deal-lang/spec">
+      <span class="dl-lnk-h">Specification ↗</span>
+      <span>Formal EBNF grammar, locked design decisions, and the validated showcase model.</span>
+    </a>
+    <a class="dl-lnk" href="https://github.com/deal-lang/deal/blob/main/SECURITY.md">
+      <span class="dl-lnk-h">Security ↗</span>
+      <span>Disclosure policy and supply-chain posture for sensitive engineering workflows.</span>
+    </a>
+    <a class="dl-lnk" href="https://github.com/deal-lang/spec/tree/main/references">
+      <span class="dl-lnk-h">Standards & references ↗</span>
+      <span>The OMG SysML v2 and KerML normative grammars DEAL maps to.</span>
+    </a>
+    <a class="dl-lnk" href="/getting-started/installation/">
+      <span class="dl-lnk-h">Documentation →</span>
+      <span>Install, first project, language reference, CLI, and editor setup.</span>
+    </a>
+  </div>
+</div>
+
+{/* ── Docs CTA banner ───────────────────────────────────────────── */}
+<div class="dl-cta">
+  <div class="dl-cta-inner">
+    <p class="dl-eyebrow">Get started</p>
+    <h2 class="dl-h2">Author your first system model in minutes.</h2>
+    <div class="dl-steps">
+      <div class="dl-step"><span class="dl-num">01</span><h3>Install</h3><p>Build from source with <code>cargo build --release</code> (Zig 0.16 + Rust).</p></div>
+      <div class="dl-step"><span class="dl-num">02</span><h3>Create</h3><p><code>deal init my-system</code> scaffolds a project with a manifest and packages.</p></div>
+      <div class="dl-step"><span class="dl-num">03</span><h3>Build</h3><p><code>deal build --target sysml-v2</code> compiles to the standard. <code>deal check</code> validates.</p></div>
+    </div>
+    <div class="dl-actions">
+      <a class="dl-btn primary" href="/getting-started/installation/">Read the docs →</a>
+      <a class="dl-btn ghost" href="https://github.com/deal-lang/deal">Star on GitHub ↗</a>
+    </div>
+  </div>
+</div>
+
+{/* ── Footer ────────────────────────────────────────────────────── */}
+<footer class="dl-footer">
+  <div class="dl-footer-inner">
+    <span class="dl-foot-brand">DEAL</span>
+    <nav class="dl-foot-links">
+      <a href="/getting-started/installation/">Docs</a>
+      <a href="https://github.com/deal-lang/spec">Spec</a>
+      <a href="https://github.com/deal-lang/deal/blob/main/SECURITY.md">Security</a>
+      <a href="https://github.com/deal-lang/deal">GitHub</a>
+      <span class="dl-foot-license">Apache-2.0</span>
+    </nav>
+    <span class="dl-status">Phase 0 complete</span>
+  </div>
+</footer>
+
+</div>
+
+<style>
+{`
+.dl-landing { --dl-border: var(--sl-color-gray-5); --dl-panel: var(--sl-color-gray-6); --dl-dim: var(--sl-color-gray-2); }
+.dl-landing :where(h2, h3) { border: 0; margin-top: 0; }
+
+/* Brand-teal inline bold — the "colored bold text" treatment. */
+.dl-landing strong { color: var(--dl-bold); font-weight: 650; }
+
+/* Large hero headline above the summary (two-tier intro) — mockup scale. */
+.dl-headline {
+  max-width: 760px; margin: 0 auto 1rem; text-align: center;
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.15rem); font-weight: 700;
+  line-height: 1.18; letter-spacing: -0.015em; color: var(--sl-color-white);
+}
+.dl-headline strong { font-weight: 700; }
+
+.dl-lead {
+  max-width: 680px; margin: 0 auto 2rem; text-align: center;
+  font-size: 1.08rem; line-height: 1.6; color: var(--sl-color-gray-2);
+}
+
+/* Hero CTAs — placed after the summary, matching the mockup. */
+.dl-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px;
+  border-radius: 9px; font-weight: 600; font-size: 0.95rem; text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.dl-btn.primary { background: var(--sl-color-accent); color: #fff; }
+.dl-btn.primary:hover { background: #22b8cf; color: #04222a; transform: translateY(-1px); }
+.dl-btn.ghost { border: 1px solid var(--dl-border); color: var(--sl-color-white); }
+.dl-btn.ghost:hover { border-color: var(--sl-color-accent); transform: translateY(-1px); }
+
+.dl-eyebrow {
+  font-family: var(--__sl-font-mono, monospace); font-size: 0.72rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--dl-bold); margin: 0 0 0.75rem; font-weight: 600;
+}
+.dl-h2 { font-size: 1.9rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 0.9rem; }
+.dl-sub, .dl-foot { color: var(--dl-dim); max-width: 700px; }
+.dl-sub { font-size: 1.05rem; margin: 0 0 1.6rem; }
+.dl-foot { font-size: 0.9rem; margin-top: 1rem; }
+
+.dl-section { padding: 3.5rem 0; border-top: 1px solid var(--dl-border); }
+
+/* Starlight adds margin-top to every element that follows a sibling; that
+   pushes the 2nd+ item in our flex/grid layouts down out of alignment.
+   Neutralize it for the direct children of those layouts. */
+.dl-landing :is(.dl-trio, .dl-split, .dl-flow, .dl-targets, .dl-steps, .dl-chips, .dl-actions, .dl-toolrow, .dl-links, .dl-footer-inner) > * { margin-top: 0; }
+.dl-num { font-family: var(--__sl-font-mono, monospace); color: var(--sl-color-text-accent); font-size: 0.8rem; letter-spacing: 0.1em; }
+
+/* Capability cards — uniform cyan icon chips + hover lift (matches mockup) */
+.dl-landing .card {
+  background: var(--dl-panel);
+  border-color: var(--dl-border);
+  padding: 1.4rem;
+  gap: 0.5rem;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.dl-landing .card:hover { border-color: var(--sl-color-accent); transform: translateY(-2px); }
+.dl-landing .card .icon {
+  color: var(--sl-color-text-accent);
+  border-color: var(--sl-color-accent);
+  background-color: color-mix(in oklab, var(--sl-color-accent), transparent 86%);
+}
+.dl-landing .card .title { font-size: 1.05rem; }
+
+/* Positioning strip — full-bleed band (breaks out of the content column). */
+.dl-position {
+  text-align: center;
+  padding: 2.6rem 1rem;
+  background: var(--dl-panel);
+  border-block: 1px solid var(--dl-border);
+  width: 100vw;
+  max-width: 100vw;
+  margin-top: 3.5rem;        /* breathing room below the hero CTAs */
+  margin-inline: calc(50% - 50vw);
+}
+.dl-position p { max-width: 760px; margin: 0 auto 1.1rem; font-size: 1.12rem; }
+.dl-position strong { color: var(--dl-bold); }
+.dl-chips { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
+.dl-chip { font-family: var(--__sl-font-mono, monospace); font-size: 0.8rem; color: var(--dl-dim);
+  border: 1px solid var(--dl-border); border-radius: 999px; padding: 0.35rem 0.85rem; background: var(--sl-color-bg); }
+.dl-chip strong { color: var(--dl-bold); font-weight: 600; }
+
+/* Problem trio — equal width (minmax(0,1fr)) and equal height (stretch + full-height flex). */
+.dl-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 1.25rem; margin-top: 1.5rem; }
+.dl-pain { background: var(--dl-panel); border: 1px solid var(--dl-border); border-radius: 12px; padding: 1.4rem; height: 100%; display: flex; flex-direction: column; }
+.dl-pain h3 { margin: 0.6rem 0 0.4rem; font-size: 1.1rem; }
+.dl-pain p { margin: 0; color: var(--dl-dim); font-size: 0.95rem; }
+
+/* Compute split */
+.dl-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-top: 1.5rem; }
+.dl-lane { background: var(--dl-panel); border: 1px solid var(--dl-border); border-radius: 12px; padding: 1.5rem; }
+.dl-lane h3 { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.5rem; }
+.dl-lane p { color: var(--dl-dim); margin: 0; }
+.dl-lane ul { margin: 0.8rem 0 0; padding-left: 1.1rem; color: var(--dl-dim); font-size: 0.93rem; }
+.dl-tagm { font-family: var(--__sl-font-mono, monospace); font-size: 0.68rem; color: var(--sl-color-text-accent);
+  border: 1px solid var(--sl-color-accent); border-radius: 6px; padding: 0.1rem 0.45rem; }
+.dl-toolrow { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+.dl-tool { font-family: var(--__sl-font-mono, monospace); font-size: 0.78rem; color: var(--sl-color-white);
+  background: var(--sl-color-bg); border: 1px solid var(--dl-border); border-radius: 7px; padding: 0.3rem 0.7rem; }
+
+/* Standards flow */
+.dl-flow { display: flex; align-items: center; justify-content: center; gap: 0.9rem; flex-wrap: wrap; margin-top: 1.5rem; }
+.dl-node { background: var(--dl-panel); border: 1px solid var(--dl-border); border-radius: 10px; padding: 0.9rem 1.1rem;
+  text-align: center; min-width: 135px; }
+.dl-node.dl-src { border-color: var(--sl-color-accent); }
+.dl-big { display: block; font-family: var(--__sl-font-mono, monospace); font-weight: 700; color: var(--sl-color-white); }
+.dl-subt { display: block; font-size: 0.78rem; color: var(--dl-dim); margin-top: 0.2rem; }
+.dl-arrow { color: var(--sl-color-text-accent); font-size: 1.4rem; }
+.dl-targets { display: flex; flex-direction: column; gap: 0.6rem; }
+
+/* On phones, stack the flow top-down and point the arrows down. */
+@media (max-width: 640px) {
+  .dl-flow { flex-direction: column; flex-wrap: nowrap; }
+  .dl-flow > .dl-node, .dl-flow .dl-targets { width: 100%; max-width: 320px; }
+  .dl-flow .dl-arrow { transform: rotate(90deg); }
+}
+
+/* Links band */
+.dl-links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; margin-top: 1.5rem; }
+.dl-lnk { display: flex; flex-direction: column; gap: 0.4rem; background: var(--dl-panel); border: 1px solid var(--dl-border);
+  border-radius: 12px; padding: 1.4rem; text-decoration: none; color: var(--sl-color-white); }
+.dl-lnk:hover { border-color: var(--sl-color-accent); }
+.dl-lnk-h { font-weight: 700; }
+.dl-lnk span:last-child { color: var(--dl-dim); font-size: 0.88rem; font-weight: 400; }
+
+/* CTA — full-bleed banner with steps + buttons. */
+.dl-cta {
+  text-align: center;
+  width: 100vw; max-width: 100vw;
+  margin-top: 0; margin-inline: calc(50% - 50vw);
+  background: var(--dl-panel);
+  border-top: 1px solid var(--dl-border);
+  padding: 3.5rem 1rem;
+}
+.dl-cta-inner { max-width: 960px; margin: 0 auto; }
+.dl-cta .dl-h2 { margin-left: auto; margin-right: auto; }
+.dl-cta .dl-actions { margin-top: 1.9rem; margin-bottom: 0; }
+.dl-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem; margin-top: 1.6rem; text-align: left; }
+.dl-step { background: var(--sl-color-bg); border: 1px solid var(--dl-border); border-radius: 12px; padding: 1.25rem; }
+.dl-step h3 { margin: 0.5rem 0 0.4rem; font-size: 1rem; }
+.dl-step p { margin: 0; color: var(--dl-dim); font-size: 0.9rem; }
+
+/* Footer — full-bleed band. */
+.dl-footer {
+  width: 100vw; max-width: 100vw;
+  margin-top: 0; margin-inline: calc(50% - 50vw);
+  border-top: 1px solid var(--dl-border);
+  padding: 1.35rem 1.5rem;
+}
+.dl-footer-inner {
+  max-width: 1080px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem 1.5rem; flex-wrap: wrap;
+  font-size: 0.88rem; color: var(--sl-color-gray-3);
+}
+.dl-foot-brand { font-family: var(--__sl-font-mono, monospace); font-weight: 800; letter-spacing: 0.06em; color: var(--sl-color-white); }
+.dl-foot-links { display: flex; align-items: center; gap: 1.4rem; flex-wrap: wrap; }
+.dl-foot-links a { color: var(--sl-color-gray-2); text-decoration: none; }
+.dl-foot-links a:hover { color: var(--dl-bold); }
+.dl-foot-license { color: var(--sl-color-gray-3); }
+.dl-status {
+  font-family: var(--__sl-font-mono, monospace); font-size: 0.76rem; color: #34d399;
+  border: 1px solid var(--dl-border); border-radius: 999px; padding: 0.3rem 0.8rem;
+}
+.dl-status::before { content: "● "; }
+
+@media (max-width: 840px) {
+  .dl-trio, .dl-split, .dl-links, .dl-steps { grid-template-columns: 1fr; }
+}
+`}
+</style>

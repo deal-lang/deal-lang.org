@@ -1,0 +1,139 @@
+---
+title: Your First Project
+description: Scaffold a DEAL project, install the standard library, check it, and build it to SysML v2 or ReqIF.
+---
+
+import { Aside, Steps, FileTree } from '@astrojs/starlight/components';
+
+This guide follows the real new-project workflow end to end: scaffold a project, resolve the standard library, check the model, and build it to a standards format. Every command below is implemented in the current CLI.
+
+## 1. Scaffold a new project
+
+`deal init` creates a project directory with a starter model and a `deal.toml` manifest:
+
+```bash
+deal init my-project
+```
+
+```
+deal init: project 'my-project' created in ./my-project/
+Next: cd my-project && deal install
+```
+
+It writes the following layout:
+
+<FileTree>
+- my-project/
+  - deal.toml        project manifest
+  - .gitignore
+  - packages/
+    - starter.deal   definitions (part, port, requirement)
+  - model/
+    - starter.dealx  composition + traceability
+  - simulations/
+  - test/data/
+  - docs/
+</FileTree>
+
+### The generated `deal.toml`
+
+```toml
+[project]
+name = "my-project"
+version = "0.1.0"
+schema = "deal/0.1"
+marking = "Unclassified"
+description = "A DEAL project"
+
+[workspace]
+packages = ["packages/*"]
+
+[dependencies]
+deal-std = { git = "https://github.com/deal-lang/deal-stdlib", tag = "v0.4.0" }
+```
+
+`deal-std` is the standard library — SI and imperial units, base types, and standard math — resolved from the `deal-stdlib` repository.
+
+### The starter model
+
+`packages/starter.deal` holds the definitions:
+
+```deal
+package starter;
+
+part def StarterPart {}
+port def StarterPort {}
+
+requirement def REQ_001 {
+    verification {
+        accepts: [analysis];
+    }
+}
+```
+
+`model/starter.dealx` composes them and records traceability:
+
+```dealx
+package model;
+
+[<system StarterSystem>]
+    [<StarterPart as="part" />]
+[</system>]
+
+[<traceability>]
+    [<satisfy requirement="REQ_001" by="StarterSystem" method="analysis">]
+    [</satisfy>]
+[</traceability>]
+```
+
+## 2. Install dependencies
+
+```bash
+cd my-project
+deal install
+```
+
+```
+Downloading deal-std v0.4.0 from https://github.com/deal-lang/deal-stdlib...
+deal install: 1 dependency resolved, deal.lock updated
+```
+
+This clones the git dependency into `.deal/deps/` and writes a SHA-pinned `deal.lock`.
+
+<Aside type="tip">
+  Commit `deal.lock` to version control so teammates and CI resolve the exact same dependency revisions.
+</Aside>
+
+## 3. Check your model
+
+`deal check` parses every source, resolves imports, and runs semantic and dimensional analysis. It exits `0` when there are no error-severity diagnostics:
+
+```bash
+deal check
+```
+
+Point it at specific files or a directory to narrow the scope (`deal check packages/starter.deal`). Add `--verify` to evaluate requirement criteria against captured evidence, or `--simulations` to validate `deal.sims.toml` bindings.
+
+<Aside type="note">
+  Formatting is built in too — `deal fmt` rewrites files in place, and `deal fmt --check` fails if anything is unformatted, which is handy in CI.
+</Aside>
+
+## 4. Build to SysML v2 or ReqIF
+
+Generate SysML v2 JSON for import into Cameo and other SysML v2 API tooling:
+
+```bash
+deal build --target sysml-v2 --output build/system.sysml.json
+```
+
+Generate a ReqIF archive for IBM DOORS and other requirements tools:
+
+```bash
+deal build --target reqif --output build/requirements.reqifz
+```
+
+Add `--validate` to run offline schema validation on the generated output before it leaves your machine.
+
+## Next steps
+
+You now have a working project and a build. Continue to [Core Concepts](/getting-started/concepts/) to learn the building blocks — definitions, compositions, requirements, traceability, and units — behind the starter model.

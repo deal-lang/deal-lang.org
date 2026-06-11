@@ -1,0 +1,175 @@
+---
+title: Definitions
+description: DEAL definition constructs — part def, port def, interface def, attribute def, and more.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+DEAL definition files (`.deal`) declare **what** your system is — its components, interfaces, ports, and attributes. Compositions (`.dealx`) declare **how** they are assembled.
+
+## Part Definitions
+
+A `part def` declares a reusable component type. Parts can specialise other parts with `<<specializes>>`, carry typed attributes, and define in/out ports.
+
+```deal
+package vehicle.motor;
+
+import deal.std.units.{kg, kW, Nm, V, A};
+import interfaces.{RegenPowerPort, ShaftPort, CANBus};
+
+part def TractionMotor {
+    @confidence: 0.90
+    @rationale: "IPM selected over induction for efficiency at partial load"
+    @assumes: "Rare earth magnet supply chain stable through 2030"
+
+    public (
+        in port powerIn : RegenPowerPort [1] {
+            <<redefines>> voltage = V(800);
+            <<redefines>> maxCurrent = A(400);
+        }
+
+        out port shaftOut : ShaftPort [1];
+        inout port canBus : CANBus [1];
+
+        attribute peakPower : Power [1] = kW(250);
+        attribute continuousPower : Power [1] = kW(180);
+        attribute peakTorque : Torque [1] = Nm(430);
+        attribute motorMass : Mass [1] = kg(35);
+    )
+}
+```
+
+The `public ( ... )` scope wrapper makes members accessible to compositions and imports. Members inside `protected ( ... )` are visible to specialisations; `private ( ... )` members are hidden.
+
+## Port Definitions
+
+A `port def` declares a typed interface boundary — a physical or logical connection point.
+
+```deal
+package interfaces;
+
+port def HVDCPort {
+    @assumes: "Voltage range 300-850V DC nominal"
+
+    public (
+        attribute voltage : Real [1];
+        attribute maxCurrent : Real [1];
+        derived attribute maxPower : Real = voltage * maxCurrent;
+    )
+}
+
+port def RegenPowerPort <<specializes>> HVDCPort {
+    @rationale: "Regen braking recovers 15-30% of kinetic energy per DOE study"
+
+    public (
+        attribute regenEfficiency : Real [1];
+        attribute maxRegenPower : Real [1];
+    )
+}
+```
+
+Port directions (`in`, `out`, `inout`) prefix the port declaration inside a `part def` body. The `port def` itself is direction-neutral.
+
+## Interface Definitions
+
+An `interface def` declares a logical communication interface, such as a bus or protocol.
+
+```deal
+package interfaces;
+
+interface def CANBus {
+    @assumes: "CAN 2.0B with 500kbps data rate"
+
+    public (
+        attribute baudRate : Integer [1] = 500000;
+        attribute maxNodes : Integer [1] = 32;
+    )
+}
+```
+
+Interface definitions describe what a connection carries, whereas `connection def` describes the physical medium.
+
+## Attribute Definitions
+
+An `attribute def` declares a typed scalar property. Attribute defs can specialise other defs and carry default values.
+
+```deal
+package deal.std.units;
+
+import .dimensions.{Mass, Power};
+
+attribute def kg <<specializes>> Mass {
+    attribute si_factor : Real = 1.0;
+}
+
+attribute def kW <<specializes>> Power {
+    attribute si_factor : Real = 1000.0;
+}
+```
+
+The `deal-stdlib` units package (`deal.std.units`) is built entirely from attribute defs — see [Units](/reference/units/) for the dimensional algebra.
+
+## Multiplicity
+
+Multiplicity is declared inside `[ ]` after the type annotation:
+
+| Syntax | Meaning |
+|--------|---------|
+| `[1]` | Exactly one (required) |
+| `[0..1]` | Optional |
+| `[1..*]` | One or more |
+| `[*]` | Zero or more (unbounded) |
+| `[4]` | Exactly four |
+
+```deal
+package vehicle.battery;
+
+import interfaces.{CoolantPort};
+
+part def BatteryPack {
+    public (
+        attribute cellCount : Integer [1] = 960;
+        in port coolantIn  : CoolantPort [1];
+        out port coolantOut : CoolantPort [1];
+    )
+}
+```
+
+`deal check` validates that compositions satisfy required (`[1]`) and optional (`[0..1]`) port props.
+
+## Structural Relationships
+
+DEAL uses double-angle bracket delimiters for structural relationships:
+
+| Keyword | Meaning |
+|---------|---------|
+| `<<specializes>>` | Type inherits from parent |
+| `<<redefines>>` | Member overrides parent member |
+| `<<subsets>>` | Member narrows parent collection |
+| `<<satisfies>>` | Element satisfies a requirement |
+| `<<derives from>>` | Element is derived from another |
+| `<<allocated to>>` | Element is allocated to a function |
+
+## Visibility Scopes
+
+Members are grouped inside visibility wrappers. Default visibility when no wrapper is present is deferred (see design decision SD-9).
+
+```deal
+package vehicle.drivetrain;
+
+import deal.std.units.{kW};
+import interfaces.{HVDCPort};
+
+part def Inverter {
+    public (
+        in port dcIn  : HVDCPort [1];
+        out port acOut : HVDCPort [1];
+        attribute peakPower : Power [1] = kW(270);
+        attribute efficiency : Real [1] = 0.97;
+    )
+}
+```
+
+<Aside type="tip">
+All code examples on this page are derived from the EV platform showcase at `spec/examples/showcase/`. The full source is the canonical reference for real-world DEAL patterns.
+</Aside>

@@ -1,0 +1,32 @@
+---
+// Static terminal-output panel for the landing page "See it work" section.
+// Lives as an Astro component because MDX cannot reliably parse a multi-line
+// <pre> with embedded coloring spans.
+---
+
+<div class="dl-term">
+  <div class="dl-term-bar">$ deal check --verify --run-sims</div>
+  <pre><span class="t-mut">deal 0.1 · checking project 'ev-platform'</span>
+<span class="t-cy">▸ parse</span>        37 files            <span class="t-ok">ok</span>
+<span class="t-cy">▸ resolve</span>      218 symbols          <span class="t-ok">ok</span>
+<span class="t-cy">▸ units</span>        dimensional algebra <span class="t-ok">ok</span>
+<span class="t-cy">▸ simulate</span>     2 stale bindings
+  <span class="t-pr">python</span>  thermal/motor_thermal.py    <span class="t-ok">✓ 0.8s</span>
+  <span class="t-pr">matlab</span>  dynamics/motor_efficiency.m <span class="t-ok">✓ 3.1s</span>
+
+<span class="t-cy">▸ verify</span>       evaluating 14 criteria
+  <span class="t-ok">PASS</span>  REQ_MOT_001  peakPower 142 kW <span class="t-mut">&gt;= 140 kW</span>
+  <span class="t-ok">PASS</span>  REQ_SYS_001  range 486 km     <span class="t-mut">&gt;= 483 km</span>
+  <span class="t-no">FAIL</span>  REQ_BAT_004  packTemp 63 °C   <span class="t-mut">&gt; 60 °C limit</span>
+
+<span class="t-no">✗ 1 requirement failed</span> <span class="t-mut">·</span> <span class="t-ok">13 passed</span> <span class="t-mut">·</span> <span class="t-wn">2 sims re-run</span>
+<span class="t-mut">exit code 1 — wired straight into CI.</span></pre>
+</div>
+
+<style>
+  .dl-term { background: #0d1626; border: 1px solid var(--sl-color-gray-5); border-radius: 12px; overflow: hidden; margin-top: 1.2rem; }
+  .dl-term-bar { padding: 0.6rem 0.9rem; border-bottom: 1px solid #1e2a40; font-family: var(--__sl-font-mono, monospace); font-size: 0.78rem; color: #6b7c93; }
+  .dl-term pre { margin: 0; padding: 1.1rem; overflow-x: auto; font-family: var(--__sl-font-mono, monospace); font-size: 0.8rem; line-height: 1.7; color: #cdd9e8; background: transparent; }
+  .t-ok { color: #34d399; } .t-no { color: #f87171; } .t-wn { color: #fbbf24; }
+  .t-mut { color: #6b7c93; } .t-cy { color: #22b8cf; } .t-pr { color: #7dd3fc; }
+</style>

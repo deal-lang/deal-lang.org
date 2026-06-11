@@ -1,0 +1,200 @@
+---
+title: Traceability
+description: DEAL traceability constructs — satisfy, allocate, validate, and trace annotations.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+DEAL traceability connects needs, requirements, design elements, and verification evidence. Traceability lives in `.dealx` files inside `[<traceability>]` blocks, or as `@trace:` annotations on `.dealx` component blocks.
+
+## @trace Annotations
+
+The `@trace:` annotation attaches traceability metadata directly to a subsystem or element:
+
+```dealx
+[<subsystem Propulsion>]
+
+    [<TractionMotor as="motor" peakPower={kW(250)} motorMass={kg(35)} />]
+
+    @trace:<<satisfies>> REQ_MOT_001
+    @trace:<<allocated to>> REQ_SYS_002 {
+        contribution: "Motor provides 250kW peak for acceleration target";
+    }
+
+[</subsystem>]
+```
+
+Common trace relationship keywords:
+
+| Relationship | Meaning |
+|-------------|---------|
+| `@trace:<<satisfies>>` | Design element satisfies a requirement |
+| `@trace:<<derives from>>` | Element is derived from another |
+| `@trace:<<partially satisfies>>` | Partial coverage — include `coverage` and `gap` |
+| `@trace:<<verified by>>` | Requirement verified by a named test/analysis |
+
+## Traceability Composition Block
+
+A `[<traceability>]` block is the formal requirements verification chain. It encloses `[<satisfy>]`, `[<allocate>]`, and `[<validate>]` blocks:
+
+```dealx
+[<traceability EVPlatformTraces>]
+
+    [<allocate from="NEED_RANGE" to="REQ_SYS_001"
+        relationship=<<derives>>
+    />]
+
+    [<satisfy requirement="REQ_SYS_001" by="EVPlatform"
+        method="simulation"
+    >] => {
+        actualRange : Length;
+        margin : Length;
+        marginPercent : Real;
+    }
+
+        criteria {
+            actualRange >= REQ_SYS_001.minRange
+        }
+
+        evidence simulation {
+            source: "simulations/dynamics/range_model.py";
+            binding: "range_model";
+            maps {
+                totalRange -> actualRange
+            }
+        }
+
+        compute {
+            margin = actualRange - REQ_SYS_001.minRange;
+            marginPercent = margin / REQ_SYS_001.minRange * 100;
+        }
+
+    [</satisfy>]
+
+[</traceability>]
+```
+
+## Satisfy Blocks
+
+`[<satisfy>]` is the core traceability construct. It:
+
+- Is **type-checked** against the requirement's `verification.accepts` list
+- **Returns typed values** via `=> { ... }` that are referenceable from anywhere as `TraceName.ReqID.fieldName`
+- **Evaluates criteria** during `deal check --verify`
+
+The `method=` value must match the requirement's `accepts` list. Using a rejected method is a compile error.
+
+```dealx
+[<satisfy requirement="REQ_BAT_001" by="EnergyStorage.battery"
+    method="analysis"
+>] => {
+    actualCapacity : Energy;
+    margin : Energy;
+}
+
+    criteria {
+        actualCapacity >= REQ_BAT_001.minCapacity
+    }
+
+    evidence design {
+        maps {
+            EnergyStorage.battery.usableCapacity -> actualCapacity
+        }
+    }
+
+    compute {
+        margin = actualCapacity - REQ_BAT_001.minCapacity;
+    }
+
+[</satisfy>]
+```
+
+### Evidence Sources
+
+| Evidence type | Description |
+|--------------|-------------|
+| `evidence simulation { ... }` | Simulation output via `source:` + `binding:` + `maps {}` |
+| `evidence test { ... }` | Test data CSV/PDF via `source:` + optional `column:`/`row:` |
+| `evidence analysis { ... }` | Analytical result with description |
+| `evidence design { ... }` | Design attribute lookup via `maps {}` |
+
+### Return Values
+
+Satisfy return values are typed and named. They are referenceable as:
+
+```
+EVPlatformTraces.REQ_SYS_001.actualRange
+EVPlatformTraces.REQ_SYS_001.marginPercent
+```
+
+### Partial Satisfaction and Gaps
+
+When a requirement is only partially satisfied, use `status="partial"` and add a `gap {}` block:
+
+```dealx
+[<satisfy requirement="REQ_BAT_002" by="EnergyStorage.battery"
+    method="test"
+    status="partial"
+>] => {
+    chargeTime_25C : Duration;
+    worstCase : Duration;
+}
+
+    criteria {
+        worstCase <= REQ_BAT_002.chargeTime
+    }
+
+    evidence test {
+        source: "test/data/charge-cycle-data.csv";
+        conditions: "ambient = 25C, SOC 10% to 80%";
+        maps {
+            value -> chargeTime_25C
+        }
+    }
+
+    gap {
+        description: "30-min target met at 25C; untested below 0C";
+        risk: "high";
+        mitigation: "Test facility booked at ALEC, Kapuskasing ON";
+    }
+
+[</satisfy>]
+```
+
+## Allocate Blocks
+
+`[<allocate>]` declares derivation from need to requirement:
+
+```dealx
+[<allocate from="NEED_RANGE" to="REQ_SYS_001"
+    relationship=<<derives>>
+/>]
+
+[<allocate from="NEED_ALL_WEATHER" to="REQ_BAT_003"
+    relationship=<<derives>>
+/>]
+```
+
+## Validate Blocks
+
+`[<validate>]` documents use-case validation against a requirement:
+
+```dealx
+[<validate requirement="REQ_SYS_001" by="LongDistanceTrip">]
+    scenario: "450km highway trip with one charge stop";
+    status: "passed";
+    evidence: "Use case analysis completed 2026-05-01";
+[</validate>]
+```
+
+## Verification Commands
+
+| Command | What it checks |
+|---------|---------------|
+| `deal check --traceability` | Structural completeness — all required satisfy blocks present |
+| `deal check --verify` | Evaluate criteria expressions against cached simulation/test results |
+| `deal check --verify --run-sims` | Re-run stale simulations, then evaluate criteria |
+
+<Aside type="tip">
+The full traceability matrix for the EV platform showcase lives in `spec/examples/showcase/model/traceability.dealx`. It covers range, acceleration, mass, battery capacity, charge time, temperature range, motor power, and thermal management.
+</Aside>

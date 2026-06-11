@@ -1,0 +1,81 @@
+---
+/* Custom masthead layout:
+   [ site title ] ............ [ GitHub + theme toggle ] [ search (far right) ]
+   The search field is pushed all the way to the right, with the social
+   icons and the theme switcher sitting to its left. */
+import config from 'virtual:starlight/user-config';
+
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+
+const shouldRenderSearch =
+  config.pagefind ||
+  config.components.Search !== '@astrojs/starlight/components/Search.astro';
+---
+
+<div class="header sl-flex">
+  <div class="title-wrapper sl-flex">
+    <SiteTitle />
+  </div>
+
+  <div class="header-end sl-flex print:hidden">
+    <div class="right-group sl-hidden md:sl-flex">
+      <div class="sl-flex social-icons">
+        <SocialIcons />
+      </div>
+      <ThemeSelect />
+      <LanguageSelect />
+    </div>
+    <div class="search-wrapper sl-flex">
+      {shouldRenderSearch && <Search />}
+    </div>
+  </div>
+</div>
+
+<style>
+  @layer starlight.core {
+    .header {
+      gap: var(--sl-nav-gap);
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+    }
+
+    .title-wrapper {
+      overflow: clip;
+      padding: 0.25rem;
+      margin: -0.25rem;
+      min-width: 0;
+    }
+
+    /* Right cluster: theme/social group, then the search box on the far right. */
+    .header-end {
+      gap: 1rem;
+      align-items: center;
+    }
+    .right-group,
+    .social-icons {
+      gap: 1rem;
+      align-items: center;
+    }
+    /* Divider between the social icons and the theme toggle. */
+    .social-icons::after {
+      content: '';
+      height: 2rem;
+      border-inline-end: 1px solid var(--sl-color-gray-5);
+    }
+
+    .search-wrapper {
+      width: min(22rem, 30vw);
+    }
+    /* On narrow viewports the right-group is hidden; let search take the room. */
+    @media (max-width: 50rem) {
+      .search-wrapper {
+        width: auto;
+      }
+    }
+  }
+</style>
