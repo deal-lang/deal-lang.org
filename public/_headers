@@ -1,0 +1,20 @@
+# Cloudflare Pages response headers.
+# https://developers.cloudflare.com/pages/configuration/headers/
+# Copied verbatim to dist/_headers at build time (Astro serves public/ at the root).
+
+/*
+  # HSTS: force HTTPS for 1 year, including subdomains.
+  # NOTE: `preload` is intentionally omitted — it is hard to reverse. Without it,
+  # this header is reversible within the max-age window. To preload later, add
+  # `; preload` and submit the apex at https://hstspreload.org (all subdomains
+  # must be HTTPS first).
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), usb=()
+
+# Fingerprinted build assets (JS, CSS, self-hosted woff2 fonts) are content-hashed,
+# so their URL changes whenever the bytes change — safe to cache forever.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
