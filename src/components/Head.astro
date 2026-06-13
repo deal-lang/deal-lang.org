@@ -1,0 +1,93 @@
+---
+// SEO: structured data (JSON-LD) override.
+//
+// Wraps Starlight's built-in Head (which renders Astro.locals.starlightRoute.head
+// verbatim — title, canonical, OG/Twitter, etc.) and appends Schema.org JSON-LD:
+//   • WebSite + Organization on every page (site identity graph)
+//   • SoftwareApplication on the homepage (the DEAL toolchain itself)
+//   • TechArticle on every documentation page (headline + description from frontmatter)
+//
+// Registered via `components.Head` in astro.config.mjs.
+import Default from '@astrojs/starlight/components/Head.astro';
+
+const SITE = 'https://deal-lang.org';
+const REPO = 'https://github.com/deal-lang/deal';
+// Pinned to the release the deploy workflow ships (see .github/workflows/deploy.yml).
+const VERSION = '0.4.0';
+
+const { id, entry } = Astro.locals.starlightRoute;
+const { title, description } = entry.data;
+
+// Homepage uses the `splash` template and is served at the site root (empty slug).
+const isHome = id === '' || entry.data.template === 'splash';
+const canonical = new URL(Astro.url.pathname, SITE).href;
+
+const org = {
+  '@type': 'Organization',
+  '@id': `${SITE}/#organization`,
+  name: 'DEAL',
+  url: `${SITE}/`,
+  sameAs: ['https://github.com/deal-lang'],
+};
+
+const website = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    org,
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE}/#website`,
+      url: `${SITE}/`,
+      name: 'DEAL — Digital Engineering Authoring Language',
+      description:
+        'A text-first authoring surface for model-based systems engineering, with a 100% mapping to KerML and the SysML v2 API.',
+      publisher: { '@id': `${SITE}/#organization` },
+      inLanguage: 'en',
+    },
+  ],
+};
+
+const softwareApplication = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  '@id': `${SITE}/#software`,
+  name: 'DEAL',
+  alternateName: 'Digital Engineering Authoring Language',
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Linux, macOS, Windows',
+  description:
+    'A text-first language and CLI for model-based systems engineering: author requirements, architecture, calculations, and verification as plain text in Git, with a 100% mapping to KerML and the SysML v2 API.',
+  url: `${SITE}/`,
+  softwareVersion: VERSION,
+  codeRepository: REPO,
+  programmingLanguage: ['Rust', 'Zig'],
+  license: 'https://www.apache.org/licenses/LICENSE-2.0',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  author: { '@id': `${SITE}/#organization` },
+  publisher: { '@id': `${SITE}/#organization` },
+};
+
+const techArticle = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: title,
+  description,
+  url: canonical,
+  inLanguage: 'en',
+  isPartOf: { '@id': `${SITE}/#website` },
+  author: { '@id': `${SITE}/#organization` },
+  publisher: { '@id': `${SITE}/#organization` },
+};
+
+const schemas = [website];
+if (isHome) schemas.push(softwareApplication);
+else schemas.push(techArticle);
+
+// `<` is escaped to `<` so a JSON string value can never terminate the
+// surrounding <script> element. All inputs here are build-time constants/frontmatter.
+const serialize = (schema: unknown) => JSON.stringify(schema).replace(/</g, '\\u003c');
+---
+
+<Default />
+{schemas.map((schema) => <script type="application/ld+json" set:html={serialize(schema)} />)}

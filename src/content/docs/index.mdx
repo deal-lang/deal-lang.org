@@ -1,10 +1,24 @@
 ---
-title: DEAL
+# `title` is the page H1 and og:title. Keyword-rich (was a bare "DEAL", which also
+# duplicated the hero wordmark). The document <title> is overridden in `head` below to
+# avoid the doubled site name ("DEAL | DEAL — …").
+title: DEAL — A text-first language for systems engineering
 description: A text-first authoring surface for model-based systems engineering, with a 100% mapping to KerML and the SysML v2 API.
 template: splash
+head:
+  # Clean, single-brand document title (~52 chars) instead of the auto-generated
+  # "<title> | <siteTitle>" which repeated "DEAL —".
+  - tag: title
+    content: DEAL — A Text-First Language for Systems Engineering
+  # Homepage is the site root, not an article.
+  - tag: meta
+    attrs:
+      property: og:type
+      content: website
 hero:
-  tagline: A text-first language for systems engineering
+  tagline: Requirements, architecture, calculations, and verification as plain text — Git-native, mapped 1:1 to KerML and the SysML v2 API.
   image:
+    alt: DEAL — Digital Engineering Authoring Language
     light: ../../assets/DEAL_Primary_Tagline_Light_Color.svg
     dark: ../../assets/DEAL_Primary_Tagline_Dark_Color.svg
 ---

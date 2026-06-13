@@ -7,10 +7,12 @@
   --sl-color-accent-high: #164E63;   /* cyan-900 — hover/active states */
   --sl-color-accent-low: #ECFEFF;    /* cyan-50 — subtle accent tints */
 
-  /* Brand typography — Inter for prose, JetBrains Mono for code + labels. */
-  --sl-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  /* Brand typography — Inter for prose, JetBrains Mono for code + labels.
+     Self-hosted via @fontsource-variable (imported in astro.config customCss) —
+     no render-blocking third-party request to fonts.googleapis.com. */
+  --sl-font: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Helvetica, Arial, sans-serif;
-  --sl-font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Fira Code', Menlo,
+  --sl-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'SF Mono', ui-monospace, 'Fira Code', Menlo,
     Consolas, monospace;
 }
 

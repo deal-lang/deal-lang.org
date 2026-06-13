@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import starlightLlmsTxt from 'starlight-llms-txt';
 import remarkGfm from 'remark-gfm';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -32,6 +33,15 @@ export default defineConfig({
     starlight({
       title: 'DEAL — Digital Engineering Authoring Language',
       description: 'A text-first language for systems engineering',
+      // Generate /llms.txt (index) and /llms-full.txt (full corpus) at build time so
+      // AI assistants and answer engines can ingest and cite the docs (GEO).
+      plugins: [
+        starlightLlmsTxt({
+          projectName: 'DEAL — Digital Engineering Authoring Language',
+          description:
+            'A text-first authoring surface for model-based systems engineering, with a 100% mapping to KerML and the SysML v2 API.',
+        }),
+      ],
       // Brand favicon (Micro icon). SVG primary; PNG fallback for older browsers.
       favicon: '/favicon.svg',
       head: [
@@ -41,16 +51,7 @@ export default defineConfig({
         { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
         { tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
         { tag: 'meta', attrs: { name: 'twitter:image', content: 'https://deal-lang.org/og.png' } },
-        // Brand typography — Inter (sans) + JetBrains Mono (code/labels).
-        { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
-        { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true } },
-        {
-          tag: 'link',
-          attrs: {
-            rel: 'stylesheet',
-            href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap',
-          },
-        },
+        // Brand typography is self-hosted — see `customCss` below (@fontsource-variable).
       ],
       // Masthead logo (upper-left) — Secondary NoTagline lockup replaces the "DEAL" text.
       // light theme -> dark-ink variant; dark theme -> light-ink variant.
@@ -66,12 +67,19 @@ export default defineConfig({
           href: 'https://github.com/deal-lang/deal',
         },
       ],
-      customCss: ['./src/styles/custom.css'],
+      // Self-hosted brand fonts (variable) load before the theme overrides.
+      customCss: [
+        '@fontsource-variable/inter',
+        '@fontsource-variable/jetbrains-mono',
+        './src/styles/custom.css',
+      ],
       // Masthead overrides: reorder (search far right; GitHub + theme to its left)
       // and replace the theme dropdown with a single cycling icon button.
       components: {
         Header: './src/components/Header.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
+        // Append Schema.org JSON-LD (WebSite/Organization + SoftwareApplication/TechArticle).
+        Head: './src/components/Head.astro',
       },
       expressiveCode: {
         shiki: {
