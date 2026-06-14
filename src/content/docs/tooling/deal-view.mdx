@@ -1,39 +1,40 @@
 ---
 title: deal view
-description: A preview of the upcoming local browser viewer for DEAL — read-only diagrams and status/debug information, rendered from your .dealview files.
+description: A preview of the upcoming local browser viewer for DEAL — read-only, interactive diagrams of your .dealview files with status and debug information, rendered in the docs theme.
 ---
 
-import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
-import ViewerFrame from '../../../components/ViewerFrame.astro';
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+import DealDiagram from '../../../components/DealDiagram.astro';
+import DealPlayground from '../../../components/DealPlayground.astro';
 
 <Aside type="caution" title="In development">
-  `deal view` is not shipped yet — it arrives with the language and CLI. Everything
-  below is a **live preview of the planned UI**, rendered from the actual viewer
-  mockups. The diagrams are interactive; the command itself is not available yet.
+  `deal view` is not shipped yet — it arrives with the language and CLI. The
+  diagrams on this page are the **real viewer renderer**, embedded live as a
+  preview. They are interactive (hover the connectors, fold a box, drag a label,
+  toggle the notation theme) — only the `deal view` command itself isn't available yet.
 </Aside>
 
 `deal view` is a **local, read-only viewer** that opens in your browser. Point it at a
 [`.dealview`](/reference/views/) file and it renders the diagram that view describes —
 element boxes, connectors, and packages — alongside status and debug information about the
-model. Nothing is editable: the viewer reads your model and presents it. It never writes
-back, so opening a view can never change your sources.
+model. Nothing is editable: the viewer reads your model and presents it, so opening a view
+can never change your sources.
 
 ```bash
 # Planned — not available yet.
 deal view model/vehicle.dealview
 ```
 
-Because views are pure presentation (see [Views](/reference/views/)), the viewer is a
-window onto your model, not part of the build. It pairs with the same `.dealview` sidecars
-the language already defines.
+## A live diagram
 
-## Live preview
+Below is the **EVPlatform · Propulsion** view: a package frame containing element boxes
+(watch the status badges), wired together by typed connectors through ports. Hover a
+connector for a plain-language reading, click a box's footer chevron to fold it, drag the
+*«satisfy»* label along its line, and switch between the DEAL brand palette and standard
+black notation. The line beneath the diagram is the viewer's live status check — it
+re-runs on every change.
 
-The example below is the **EVPlatform · Propulsion** diagram — a package frame containing
-element boxes (with status badges) wired together by typed connectors. Hover a connector
-for a plain-language explainer, and toggle the notation theme inside the frame.
-
-<ViewerFrame src="/viewer/example.html" title="EVPlatform · Propulsion — live preview" height={620} />
+<DealDiagram kind="example" caption="EVPlatform · Propulsion — interconnection view" toolbar />
 
 ## What it does
 
@@ -43,55 +44,75 @@ for a plain-language explainer, and toggle the notation theme inside the frame.
     open any view safely.
   </Card>
   <Card title="Status & debug" icon="approve-check">
-    Surfaces diagnostics and verification state inline — error/warning counts and
-    pass/fail badges sit right on the elements they belong to.
+    Diagnostics and verification state show inline — error/warning counts and pass/fail
+    badges sit on the elements they belong to, with a live check summary underneath.
   </Card>
-  <Card title="Theme-aware rendering" icon="sun">
-    Full light/dark support, plus a standards-compliant black notation theme and an
-    optional DEAL-branded theme with family color coding.
+  <Card title="Follows your theme" icon="sun">
+    Diagrams render in the docs' own light/dark theme and typography. A second toggle
+    switches between DEAL's family-colour palette and standards-pure black notation.
   </Card>
   <Card title="SysML v2 notation" icon="seti:default">
-    Element boxes, ten typed connector glyphs (shape-based, never color-based), and
+    Element boxes, ten typed connector glyphs (shape-based, never colour-based), and
     folder-style packages — faithful to OMG SysML v2.
   </Card>
   <Card title="Deterministic layout" icon="setting">
-    Auto-layout is a pure function of the spec, tokens, and a pinned font, so the same
-    model always draws the same way — and stays zoom-consistent.
+    The same model always draws the same way, and stays crisp at any zoom — pure vector,
+    measured text, integer coordinates.
   </Card>
-  <Card title="Click to navigate" icon="random">
-    Cmd/Ctrl-click a qualified name to jump to it; drag association labels; fold and
-    unfold element compartments live.
+  <Card title="Built to navigate" icon="random">
+    Every element carries its identity, so the shipped viewer will jump from a box or line
+    straight to the `.deal` source that declares it.
   </Card>
 </CardGrid>
 
-## The building blocks
+## How a diagram is built
 
-The viewer composes three notation primitives. Each preview below is interactive.
+A view composes three notation primitives. Each preview below is the live renderer — and
+follows the notation toggle on the example above.
 
-<Tabs>
-  <TabItem label="Element boxes">
-    Atomic model elements — parts, requirements, actions, states — with family-tinted
-    headers, collapsible compartments, and corner badges for diagnostics and verification.
+### Element boxes
 
-    <ViewerFrame src="/viewer/element-box.html" title="Element Box — component gallery" />
-  </TabItem>
-  <TabItem label="Connectors">
-    Ten relationship types, each with a distinct glyph (subclassification, composition,
-    membership, association, and more). Orthogonal routing with crossing hops, bundling,
-    and inline labels.
+The atomic unit: a keyword (the «stereotype»), a bold name, and any number of compartments
+(attributes, ports, actions, states…). Status badges ride in the header — diagnostics
+(errors/warnings) and a verification mark (✓ / ✗ / ○). Definitions get square corners,
+usages get rounded ones. Click the footer chevron to fold a box.
 
-    <ViewerFrame src="/viewer/connector.html" title="Connector — component gallery" />
-  </TabItem>
-  <TabItem label="Packages">
-    Folder-style namespace frames that contain elements, with notation for owned members,
-    aliases, and imported (dashed) packages.
+<DealDiagram kind="element-box" caption="The reference element — part def Vehicle" toolbar />
 
-    <ViewerFrame src="/viewer/package.html" title="Package — component gallery" />
-  </TabItem>
-</Tabs>
+The same component scales from a one-line box to a fully-loaded one with no configuration —
+width clamps and long names wrap, long items truncate with the full text on hover:
 
-The geometry, spacing, and rendering rules behind all three are written up in the
-[Layout Rules specification](/viewer/layout-rules.html).
+<DealDiagram kind="element-gallery" caption="One component, many shapes" />
+
+Edit the spec and watch it redraw — add compartments, items, visibility prefixes
+(`+ − #`), multiplicities (`[0..1]`), or an absurdly long name:
+
+<DealPlayground />
+
+### Connectors
+
+Relationships are drawn as typed connectors. Meaning lives entirely in the glyph's
+**shape**, never its colour, so the notation reads the same in any theme and survives
+grayscale. Hover any line for a plain-language reading of what it says.
+
+<DealDiagram kind="connectors" caption="Connectors — the ten relationship types and how they route" />
+
+### Packages
+
+A package is the folder-style container everything else lives in. It shows owned members,
+aliases, and imported (dashed) packages — and when a view's subject is a package, the
+folder *is* the diagram frame.
+
+<DealDiagram kind="packages" caption="Packages — namespaces and the view frame" />
+
+## Status & debug
+
+Because the viewer reads the live model, it surfaces what the model knows. Element headers
+carry **diagnostic badges** (✖ errors, ⚠ warnings — worst severity wins, counts cap at 9+)
+and a **verification mark** (✓ verified, ✗ failed, ○ unverified). The status line under a
+diagram reports the viewer's own layout checks — overlaps, connector routing, minimum
+lengths — re-run on every fold or drag. It's a window onto model health, not a place to
+edit.
 
 ## Related
 

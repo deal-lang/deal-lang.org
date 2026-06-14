@@ -1,0 +1,35 @@
+---
+// Themed mount point for a natively-rendered DEAL Viewer diagram.
+// The SVG is built client-side by src/diagrams/* (dispatched by `kind`); this
+// just emits the panel chrome + an empty, theme-classed canvas. One hoisted
+// module script initializes every diagram on the page (idempotent).
+interface Props {
+  /** Which diagram to mount: example | element-box | element-gallery | connectors | packages */
+  kind: string;
+  /** Optional caption shown in the panel's title bar. */
+  caption?: string;
+  /** Show a Branded / Standard notation toggle in the title bar. */
+  toolbar?: boolean;
+}
+const { kind, caption, toolbar = false } = Astro.props;
+---
+
+<figure class="deal-diagram">
+  {(caption || toolbar) && (
+    <div class="dd-bar">
+      {caption && <span class="dd-title">{caption}</span>}
+      {toolbar && (
+        <span class="dd-toolbar">
+          <button type="button" data-dd-theme="brand" class="on">Branded</button>
+          <button type="button" data-dd-theme="plain">Standard</button>
+        </span>
+      )}
+    </div>
+  )}
+  <div class="dd-canvas eb-brand" data-deal-diagram data-kind={kind}></div>
+</figure>
+
+<script>
+  import { initDealDiagrams } from '../diagrams/mount.js';
+  initDealDiagrams();
+</script>

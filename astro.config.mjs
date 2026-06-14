@@ -72,6 +72,7 @@ export default defineConfig({
         '@fontsource-variable/inter',
         '@fontsource-variable/jetbrains-mono',
         './src/styles/custom.css',
+        './src/styles/diagrams.css',
       ],
       // Masthead overrides: reorder (search far right; GitHub + theme to its left)
       // and replace the theme dropdown with a single cycling icon button.

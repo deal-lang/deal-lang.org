@@ -1,0 +1,30 @@
+---
+// Live element-box editor: edit the JSON spec and the box redraws. Wired by the
+// 'playground' branch of src/diagrams/mount.js. Branded / Standard toggle lives
+// in the title bar; the dev-only metrics readout from the source mockup is dropped.
+---
+
+<figure class="deal-diagram">
+  <div class="dd-bar">
+    <span class="dd-title">Try it — edit the spec, the box redraws live</span>
+    <span class="dd-toolbar">
+      <button type="button" data-dd-theme="brand" class="on">Branded</button>
+      <button type="button" data-dd-theme="plain">Standard</button>
+    </span>
+  </div>
+  <div class="dd-canvas eb-brand" data-deal-diagram data-kind="playground">
+    <div class="dd-pg">
+      <div class="dd-pg-left">
+        <div class="dd-pg-presets" data-dd-pg-presets></div>
+        <textarea data-dd-pg-src spellcheck="false" aria-label="Element box spec (JSON)"></textarea>
+        <div class="dd-pg-err" data-dd-pg-err></div>
+      </div>
+      <div class="dd-pg-out" data-dd-pg-out></div>
+    </div>
+  </div>
+</figure>
+
+<script>
+  import { initDealDiagrams } from '../diagrams/mount.js';
+  initDealDiagrams();
+</script>

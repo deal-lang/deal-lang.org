@@ -14,14 +14,6 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), usb=()
 
-# DEAL Viewer mockups embedded as live previews on /tooling/deal-view/.
-# The global rule above sends X-Frame-Options: DENY (blocks all framing); relax it
-# here so these same-origin pages can be embedded in an <iframe> by our own docs —
-# and only by our own docs. `frame-ancestors 'self'` is the modern CSP equivalent.
-/viewer/*
-  X-Frame-Options: SAMEORIGIN
-  Content-Security-Policy: frame-ancestors 'self'
-
 # Fingerprinted build assets (JS, CSS, self-hosted woff2 fonts) are content-hashed,
 # so their URL changes whenever the bytes change — safe to cache forever.
 /_astro/*

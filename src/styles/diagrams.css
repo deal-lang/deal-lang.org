@@ -1,0 +1,248 @@
+/* ============================================================================
+   diagrams.css — theming + chrome for the natively-rendered DEAL Viewer diagrams.
+
+   The diagram SVG is built at runtime by src/diagrams/*.js, so its nodes never
+   receive Astro's scoped-style hash — theming MUST be global. The components
+   read everything through CSS custom properties; here we map those onto the
+   site's Starlight tokens and switch light/dark off `:root[data-theme]` (the
+   attribute Starlight sets), so diagrams follow the docs theme automatically.
+   ========================================================================== */
+
+/* ── Base tokens (light) ──────────────────────────────────────────────── */
+:root[data-theme='light'] .deal-diagram {
+  --fg: var(--sl-color-text);
+  --muted: #6b6b66;
+  --accent: var(--sl-color-accent);
+  --card: #ffffff;
+  --border: var(--sl-color-gray-5);
+  --good: #1a7a3c; --warn: #a05a00; --bad: #a32020;
+  --eb-stroke: var(--sl-color-text);
+  --eb-fill: #ffffff;
+  --eb-text: var(--sl-color-text);
+  --eb-dim: #555550;
+  --cn-stroke: var(--sl-color-text);
+  --cn-fill: var(--sl-color-gray-6);   /* hollow glyph interior = canvas bg */
+  --cn-solid: var(--sl-color-text);
+}
+
+/* ── Base tokens (dark — Starlight's default when data-theme is absent) ── */
+:root:not([data-theme='light']) .deal-diagram {
+  --fg: var(--sl-color-text);
+  --muted: #9a9aa3;
+  --accent: var(--sl-color-accent);
+  --card: var(--sl-color-black);
+  --border: var(--sl-color-gray-5);
+  --good: #5fc788; --warn: #e0a458; --bad: #e07070;
+  --eb-stroke: var(--sl-color-text);
+  --eb-fill: var(--sl-color-black);
+  --eb-text: var(--sl-color-text);
+  --eb-dim: #9aa1ab;
+  --cn-stroke: var(--sl-color-text);
+  --cn-fill: var(--sl-color-gray-6);
+  --cn-solid: var(--sl-color-text);
+}
+
+/* ── Panel chrome ─────────────────────────────────────────────────────── */
+.deal-diagram {
+  margin: 1.4rem 0;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 12px;
+  background: var(--sl-color-gray-6);
+  overflow: hidden;
+}
+.deal-diagram .dd-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--sl-color-gray-5);
+  font-family: var(--__sl-font-mono, var(--sl-font-mono, monospace));
+  font-size: 0.78rem;
+  color: var(--sl-color-gray-2);
+}
+.deal-diagram .dd-bar .dd-title { margin-right: auto; }
+.deal-diagram .dd-toolbar { display: flex; gap: 0.4rem; }
+.deal-diagram .dd-toolbar button {
+  border: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-text);
+  border-radius: 6px;
+  padding: 2px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.deal-diagram .dd-toolbar button:hover { border-color: var(--sl-color-accent); }
+.deal-diagram .dd-toolbar button.on {
+  border-color: var(--sl-color-accent);
+  background: var(--sl-color-accent);
+  color: #fff;
+}
+
+.deal-diagram .dd-canvas {
+  display: block;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+/* runtime-built SVG: scale to the column, keep aspect ratio */
+.deal-diagram .dd-svg { display: block; max-width: 100%; height: auto; }
+.deal-diagram .dd-svg.dd-example { width: 100%; }
+
+/* live status / debug line under a diagram */
+.deal-diagram .dd-status {
+  padding: 0.5rem 0.9rem;
+  border-top: 1px solid var(--sl-color-gray-5);
+  font-family: var(--__sl-font-mono, var(--sl-font-mono, monospace));
+  font-size: 0.74rem;
+  color: var(--sl-color-gray-2);
+  min-height: 1.1em;
+}
+
+/* internal galleries / figures (component breakdown demos) */
+.deal-diagram .dd-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  align-items: flex-start;
+}
+.deal-diagram .dd-fig { margin: 0 0 1.2rem; text-align: center; }
+.deal-diagram .dd-fig:last-child { margin-bottom: 0; }
+.deal-diagram .dd-fig figcaption {
+  margin-top: 0.5rem;
+  max-width: 480px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.deal-diagram .dd-gallery .dd-fig figcaption { max-width: 260px; }
+
+/* connector relationship reference (legend) */
+.deal-diagram .dd-legend { width: 100%; text-align: left; }
+.deal-diagram .dd-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.deal-diagram .dd-legend-row svg { flex: none; }
+.deal-diagram .dd-legend-what { min-width: 150px; font-weight: 600; font-size: 0.86rem; color: var(--fg); }
+.deal-diagram .dd-legend-how { color: var(--muted); font-size: 0.84rem; }
+
+/* interaction affordances (paint-only) */
+.deal-diagram .eb-fold-hit { cursor: pointer; }
+.deal-diagram .eb-fold-hit:hover { fill: rgba(127, 127, 127, 0.10); }
+.deal-diagram .eb-ref:hover { text-decoration: underline; cursor: pointer; }
+.deal-diagram .cn-ref path.cn-line-hit { cursor: pointer; }
+.deal-diagram .cn-ref:has(path.cn-line-hit:hover) path.cn-line,
+.deal-diagram .cn-ref path.cn-line:hover { stroke-width: 2.5; }
+.deal-diagram .cn-label-hit { cursor: grab; }
+.deal-diagram .cn-label-hit:hover { fill: rgba(127, 127, 127, 0.10); }
+
+/* ── Notation theme: standard (plain) vs DEAL brand (family tints) ─────── */
+/* Standard notation — explicit reset to conformance "black" (the text color). */
+.deal-diagram .eb-plain g[data-eb] {
+  --eb-outline: var(--eb-stroke);
+  --eb-rule: var(--eb-stroke);
+  --eb-sep: var(--eb-stroke);
+  --eb-kw: var(--eb-dim);
+  --eb-header-fill: transparent;
+}
+
+/* Brand base (family fallback) */
+.deal-diagram .eb-brand g[data-eb] {
+  --eb-accent: #5a6570;
+  --eb-header-fill: #eeefec;
+  --eb-outline: var(--eb-accent);
+  --eb-rule: var(--eb-accent);
+  --eb-kw: var(--eb-accent);
+  --eb-sep: #d4d5d0;
+  --eb-dim: #5d6166;
+}
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-eb] {
+  --eb-accent: #9aa4ad;
+  --eb-header-fill: #262b30;
+  --eb-sep: #3c4045;
+  --eb-dim: #a3a7ab;
+}
+
+/* Family palettes (light) */
+.deal-diagram .eb-brand g[data-family="part"]        { --eb-accent: #2e6f9e; --eb-header-fill: #e9f1f7; }
+.deal-diagram .eb-brand g[data-family="item"]        { --eb-accent: #4a7290; --eb-header-fill: #eaf0f4; }
+.deal-diagram .eb-brand g[data-family="requirement"] { --eb-accent: #2e7d52; --eb-header-fill: #e9f3ed; }
+.deal-diagram .eb-brand g[data-family="action"]      { --eb-accent: #6b5b9a; --eb-header-fill: #efecf6; }
+.deal-diagram .eb-brand g[data-family="state"]       { --eb-accent: #2a7f8a; --eb-header-fill: #e6f2f4; }
+.deal-diagram .eb-brand g[data-family="interface"],
+.deal-diagram .eb-brand g[data-family="port"]        { --eb-accent: #a06a26; --eb-header-fill: #f7efe3; }
+.deal-diagram .eb-brand g[data-family="constraint"]  { --eb-accent: #96474f; --eb-header-fill: #f6eaec; }
+.deal-diagram .eb-brand g[data-family="allocation"]  { --eb-accent: #54707d; --eb-header-fill: #eaf0f2; }
+.deal-diagram .eb-brand g[data-family="package"]     { --eb-accent: #8a6f2f; --eb-header-fill: #f5edd8; }
+
+/* Family palettes (dark) */
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="part"]        { --eb-accent: #6aa9d4; --eb-header-fill: #1e2c38; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="item"]        { --eb-accent: #7fa3bd; --eb-header-fill: #202b33; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="requirement"] { --eb-accent: #66b58c; --eb-header-fill: #1e3127; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="action"]      { --eb-accent: #a294cc; --eb-header-fill: #28233a; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="state"]       { --eb-accent: #67b3bd; --eb-header-fill: #1d3134; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="interface"],
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="port"]        { --eb-accent: #cfa05e; --eb-header-fill: #352a18; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="constraint"]  { --eb-accent: #c98a92; --eb-header-fill: #372327; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="allocation"]  { --eb-accent: #8fadba; --eb-header-fill: #212e34; }
+:root:not([data-theme='light']) .deal-diagram .eb-brand g[data-family="package"]     { --eb-accent: #cfae5e; --eb-header-fill: #33290f; }
+
+/* ── Connector hover explainer card (appended to <body>, so styled with site
+      tokens directly — it lives outside .deal-diagram) ──────────────────── */
+.dd-explainer {
+  position: absolute;
+  z-index: 60;
+  max-width: 340px;
+  background: var(--sl-color-bg, var(--sl-color-black));
+  border: 1.5px solid var(--sl-color-text);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--sl-color-text);
+}
+.dd-explainer .ck { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sl-color-gray-3); }
+.dd-explainer .cr { font-weight: 700; font-size: 13.5px; margin: 0.25rem 0 0.35rem; }
+.dd-explainer .cm { color: var(--sl-color-gray-2); }
+.dd-explainer .cd { color: var(--sl-color-gray-3); font-style: italic; margin-top: 0.3rem; }
+.dd-explainer .cf {
+  font-family: var(--__sl-font-mono, var(--sl-font-mono, monospace));
+  font-size: 10px;
+  color: var(--sl-color-gray-3);
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--sl-color-gray-5);
+  padding-top: 0.4rem;
+}
+
+/* ── Playground (live element-box editor) ─────────────────────────────── */
+.deal-diagram .dd-pg { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.deal-diagram .dd-pg-left { display: flex; flex-direction: column; gap: 8px; }
+.deal-diagram .dd-pg textarea {
+  width: 380px; max-width: 100%; height: 360px;
+  font-family: var(--__sl-font-mono, var(--sl-font-mono, monospace));
+  font-size: 0.76rem;
+  background: var(--sl-color-black);
+  color: var(--sl-color-text);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
+  padding: 0.7rem;
+  resize: vertical;
+}
+.deal-diagram .dd-pg-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.deal-diagram .dd-pg-presets button {
+  border: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-text);
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.deal-diagram .dd-pg-presets button:hover { border-color: var(--sl-color-accent); }
+.deal-diagram .dd-pg-out { flex: 1; min-width: 280px; }
+.deal-diagram .dd-pg-err { color: var(--bad, #e07070); font-family: var(--__sl-font-mono, monospace); font-size: 0.76rem; min-height: 1.1em; }
