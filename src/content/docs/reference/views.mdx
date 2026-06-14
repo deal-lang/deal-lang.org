@@ -8,7 +8,7 @@ import { Aside } from '@astrojs/starlight/components';
 DEAL has three file types. Definitions live in `.deal`, compositions in `.dealx`, and **views** in `.dealview`. A view is a *sidecar*: it describes how part of the model is drawn — which elements appear, how they are laid out, and how they are styled — without changing the model itself.
 
 <Aside type="note" title="Status">
-  The view grammar (`dealview.ebnf`, Layer 5 of the spec) is defined and the showcase ships ten `.dealview` files, but the current CLI does not parse or render views yet — view tooling arrives with the editor. Views are pure presentation, so this never blocks you: deleting every `.dealview` file leaves `deal build` output unchanged.
+  The view grammar (`dealview.ebnf`, Layer 5 of the spec) is defined and the showcase ships ten `.dealview` files, but the current CLI does not parse or render views yet — view tooling arrives with the editor. Preview the planned UI on the [deal view](/tooling/deal-view/) page. Views are pure presentation, so this never blocks you: deleting every `.dealview` file leaves `deal build` output unchanged.
 </Aside>
 
 ## A view is a sidecar, not a source

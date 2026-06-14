@@ -117,6 +117,16 @@ export default defineConfig({
             { label: 'VS Code Setup', slug: 'cli/vscode-setup' },
           ],
         },
+        {
+          label: 'Tooling',
+          items: [
+            {
+              label: 'deal view',
+              slug: 'tooling/deal-view',
+              badge: { text: 'Soon', variant: 'caution' },
+            },
+          ],
+        },
       ],
     }),
   ],

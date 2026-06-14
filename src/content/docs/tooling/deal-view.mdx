@@ -1,0 +1,99 @@
+---
+title: deal view
+description: A preview of the upcoming local browser viewer for DEAL — read-only diagrams and status/debug information, rendered from your .dealview files.
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import ViewerFrame from '../../../components/ViewerFrame.astro';
+
+<Aside type="caution" title="In development">
+  `deal view` is not shipped yet — it arrives with the language and CLI. Everything
+  below is a **live preview of the planned UI**, rendered from the actual viewer
+  mockups. The diagrams are interactive; the command itself is not available yet.
+</Aside>
+
+`deal view` is a **local, read-only viewer** that opens in your browser. Point it at a
+[`.dealview`](/reference/views/) file and it renders the diagram that view describes —
+element boxes, connectors, and packages — alongside status and debug information about the
+model. Nothing is editable: the viewer reads your model and presents it. It never writes
+back, so opening a view can never change your sources.
+
+```bash
+# Planned — not available yet.
+deal view model/vehicle.dealview
+```
+
+Because views are pure presentation (see [Views](/reference/views/)), the viewer is a
+window onto your model, not part of the build. It pairs with the same `.dealview` sidecars
+the language already defines.
+
+## Live preview
+
+The example below is the **EVPlatform · Propulsion** diagram — a package frame containing
+element boxes (with status badges) wired together by typed connectors. Hover a connector
+for a plain-language explainer, and toggle the notation theme inside the frame.
+
+<ViewerFrame src="/viewer/example.html" title="EVPlatform · Propulsion — live preview" height={620} />
+
+## What it does
+
+<CardGrid>
+  <Card title="Read-only diagrams" icon="open-book">
+    Renders the diagram a `.dealview` file describes. The viewer never edits your model —
+    open any view safely.
+  </Card>
+  <Card title="Status & debug" icon="approve-check">
+    Surfaces diagnostics and verification state inline — error/warning counts and
+    pass/fail badges sit right on the elements they belong to.
+  </Card>
+  <Card title="Theme-aware rendering" icon="sun">
+    Full light/dark support, plus a standards-compliant black notation theme and an
+    optional DEAL-branded theme with family color coding.
+  </Card>
+  <Card title="SysML v2 notation" icon="seti:default">
+    Element boxes, ten typed connector glyphs (shape-based, never color-based), and
+    folder-style packages — faithful to OMG SysML v2.
+  </Card>
+  <Card title="Deterministic layout" icon="setting">
+    Auto-layout is a pure function of the spec, tokens, and a pinned font, so the same
+    model always draws the same way — and stays zoom-consistent.
+  </Card>
+  <Card title="Click to navigate" icon="random">
+    Cmd/Ctrl-click a qualified name to jump to it; drag association labels; fold and
+    unfold element compartments live.
+  </Card>
+</CardGrid>
+
+## The building blocks
+
+The viewer composes three notation primitives. Each preview below is interactive.
+
+<Tabs>
+  <TabItem label="Element boxes">
+    Atomic model elements — parts, requirements, actions, states — with family-tinted
+    headers, collapsible compartments, and corner badges for diagnostics and verification.
+
+    <ViewerFrame src="/viewer/element-box.html" title="Element Box — component gallery" />
+  </TabItem>
+  <TabItem label="Connectors">
+    Ten relationship types, each with a distinct glyph (subclassification, composition,
+    membership, association, and more). Orthogonal routing with crossing hops, bundling,
+    and inline labels.
+
+    <ViewerFrame src="/viewer/connector.html" title="Connector — component gallery" />
+  </TabItem>
+  <TabItem label="Packages">
+    Folder-style namespace frames that contain elements, with notation for owned members,
+    aliases, and imported (dashed) packages.
+
+    <ViewerFrame src="/viewer/package.html" title="Package — component gallery" />
+  </TabItem>
+</Tabs>
+
+The geometry, spacing, and rendering rules behind all three are written up in the
+[Layout Rules specification](/viewer/layout-rules.html).
+
+## Related
+
+- [Views](/reference/views/) — the `.dealview` sidecar format the viewer renders.
+- [CLI Overview](/cli/overview/) — the `deal` command this will ship with.
