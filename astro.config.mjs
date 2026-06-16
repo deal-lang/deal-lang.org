@@ -101,6 +101,7 @@ export default defineConfig({
           label: 'Language Reference',
           items: [
             { label: 'Definitions', slug: 'reference/definitions' },
+            { label: 'Behavior', slug: 'reference/behavior' },
             { label: 'Compositions', slug: 'reference/compositions' },
             { label: 'Views', slug: 'reference/views' },
             { label: 'Requirements', slug: 'reference/requirements' },

@@ -1,0 +1,137 @@
+---
+title: Behavior
+description: DEAL behavioral modeling — actions, control flow, item flows, and state machines that map to SysML v2 actions and states.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+DEAL models behavior as **text**: actions describe what a system *does*, and
+state machines describe how it *reacts*. Both live inside `action def` and
+`state def` bodies and normalize to SysML v2 ActionUsages, control nodes,
+successions, and StateUsages/TransitionUsages — so a behavioral model diffs in a
+PR and emits as schema-valid SysML v2.
+
+The two new operators are succession `->` (control flow) and item flow `~>`
+(object/data flow).
+
+## Action Definitions
+
+An `action def` declares a behavior. Its body holds directed **pins**
+(`in`/`out`/`inout`), nested **sub-actions** (`action`), and the flow that wires
+them together. A `->` chain is a sequence of [successions](#succession);
+`start` and `done` are the control endpoints.
+
+```deal
+action def Accelerate {
+    in  throttlePosition : Real;
+    in  currentSpeed     : Velocity;
+    out resultingAccel   : Acceleration;
+
+    action requestTorque;
+    action deliverPower    { out delivered : Energy; }
+    action controlTraction { in  sample    : Energy; }
+
+    start -> requestTorque -> deliverPower -> controlTraction -> done;
+
+    deliverPower.delivered ~> controlTraction.sample : Energy;   // item flow
+    bind resultingAccel = controlTraction.sample;                // binding
+}
+```
+
+A sub-action may carry its own body to declare the pins that flows reference
+(`deliverPower { out delivered : Energy; }`).
+
+## Succession
+
+`a -> b` asserts that `a` happens before `b` (a SysML SuccessionAsUsage). A
+chain may be guarded and may flow through control blocks:
+
+```deal
+start -> calculateRegenTorque -> decide {
+    [brakePosition > 0.1] -> recover
+    [else]                -> blendMechanicalBrake
+} -> done;
+```
+
+## Control flow
+
+| Construct | Meaning | SysML v2 |
+|---|---|---|
+| `decide { [g] -> … }` | branch on guards (`[else]` = default) | DecisionNode + MergeNode |
+| `par { -> … }` | concurrent branches | ForkNode + JoinNode |
+| `loop while [g] { … }` | guarded loop (`until` also) | WhileLoopActionUsage |
+| `for x in e { … }` | iteration | ForLoopActionUsage |
+
+```deal
+start -> monitorTemps -> par {
+    -> activateHeating
+    -> activateCooling
+} -> adjustCoolantFlow -> done;
+
+loop while [soc < 80] {
+    constantCurrent -> measure;
+}
+
+for zone in coolingZones {
+    balance(zone);          // perform a sub-action
+}
+```
+
+## Action statements
+
+```deal
+send Overheat to thermalController;   // SendActionUsage
+accept PlugInserted;                  // AcceptActionUsage
+assign chargeTime := soc + 10;        // AssignmentActionUsage
+balance(zone);                        // perform (PerformActionUsage)
+```
+
+For arbitrary, irreducible graphs the escape hatch declares explicit nodes and
+edges: `node n : SomeAction;` and `succession a -> [g] b;`.
+
+## State Machines
+
+A `state def` body holds nested `state` usages, `entry`/`do`/`exit` behaviors,
+and triggered transitions. A transition collapses trigger, guard, effect, and
+target onto one line:
+
+```deal
+state def ChargingControl {
+    in soc  : Percent;
+    in temp : Temperature;
+
+    start -> Idle;
+
+    state Idle {
+        on PlugInserted -> Charging;
+    }
+
+    state Charging {
+        entry / startCharge();
+        do    / regulateCurrent();
+        exit  / stopCharge();
+
+        on PlugRemoved              -> Idle;
+        on socFull  [soc >= 100] / notify()   -> Idle;
+        on tempHigh [temp > 60]  / shutdown() -> Fault;
+    }
+
+    state Fault {
+        on reset -> Idle;
+    }
+
+    Fault -> done;
+}
+```
+
+`on TRIGGER [GUARD]? ( / EFFECT )? -> TARGET` maps to a SysML v2 TransitionUsage
+with trigger/effect feature memberships; `entry`/`do`/`exit` map to
+StateSubactionMemberships.
+
+<Aside type="note" title="Guard expressions">
+Guards (`[soc >= 80]`), assignment values, and payloads round-trip and format
+today, and the surrounding structure (successions, transitions, pin typing)
+emits as SysML v2. Emitting the guard/value **expressions themselves** as
+structured SysML `Expression` trees is a planned enhancement — until then they
+are carried as text.
+</Aside>
