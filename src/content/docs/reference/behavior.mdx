@@ -129,9 +129,11 @@ with trigger/effect feature memberships; `entry`/`do`/`exit` map to
 StateSubactionMemberships.
 
 <Aside type="note" title="Guard expressions">
-Guards (`[soc >= 80]`), assignment values, and payloads round-trip and format
-today, and the surrounding structure (successions, transitions, pin typing)
-emits as SysML v2. Emitting the guard/value **expressions themselves** as
-structured SysML `Expression` trees is a planned enhancement — until then they
-are carried as text.
+Guards (`[soc >= 80]`), assignment values, accept payloads, and loop bounds emit
+as structured SysML v2 / KerML `Expression` trees: `[soc >= 80]` becomes an
+`OperatorExpression(">=")` over a `FeatureReferenceExpression(soc)` and a
+`LiteralInteger(80)`. Transition guards complete the trigger/guard/effect triad
+as a `kind=guard` membership owning a Boolean-valued `Expression`. This lands in
+IR v0.2 (the operator → library-function reference is resolved by the receiving
+tool; DEAL authors only the operator symbol).
 </Aside>
